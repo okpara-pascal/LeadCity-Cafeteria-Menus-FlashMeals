@@ -4,7 +4,7 @@
    special: true   = reusable token, sign‑out button shown
    ─────────────────────────────────────────────────────────────────────────── */
 const VALID_TOKENS = {
-   'CAMP-2024-ALFA': { name: 'Student',    role: 'student' },
+  'CAMP-2024-ALFA': { name: 'Student',   role: 'student' },
   'CAMP-2024-BETA': { name: 'Student',    role: 'student' },
   'CAMP-2024-GAMA': { name: 'Student',   role: 'student' },
   'CAMP-2024-DELT': { name: 'Student',   role: 'student' },
