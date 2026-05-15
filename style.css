@@ -584,7 +584,6 @@ html.logged-in #app {
     .main { padding: 1rem; }
     .topbar { padding: .75rem 1rem; }
     .topbar-title { font-size: 14px; }
-    .mode-badge { display: none; }
     .col-action { display: none; }
     .menu-table th:last-child, .menu-table td:last-child { display: none; }
     .hint-tokens { display: none; }
