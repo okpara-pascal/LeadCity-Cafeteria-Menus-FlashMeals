@@ -3,6 +3,10 @@
    role: 'student' = read-only | 'admin' = can edit menus
    special: true   = reusable token, sign‑out button shown
    ─────────────────────────────────────────────────────────────────────────── */
+
+const SUPABASE_URL = 'https://ovhsnlrshedhcbkeocaj.supabase.co;   // ⬅️ your URL
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92aHNubHJzaGVkaGNia2VvY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY2MjUsImV4cCI6MjA5NDQ0MjYyNX0.6WNw84mnPJ_ShBbC-PAU7STktl2jPgYE33ybotoRewA'; // ⬅️ your anon key
+
 const VALID_TOKENS = {
   'CAMP-2024-ALFA': { name: 'Student',   role: 'student' },
   'CAMP-2024-BETA': { name: 'Student',    role: 'student' },
