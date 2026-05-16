@@ -220,7 +220,6 @@ async function tryEnter() {
 }
 
 document.getElementById('retry-btn').addEventListener('click', function () {
-  // If this was a revoked session, clear everything now
   if (localStorage.getItem('revoked_session') === 'true') {
     localStorage.removeItem('current_token');
     localStorage.removeItem('selected_caf');
@@ -238,17 +237,14 @@ document.getElementById('logout-btn').addEventListener('click', function () {
   localStorage.removeItem('selected_caf');
   localStorage.removeItem('revoked_session');
   
-  // Reset state
   selectedCaf = null;
   isAdmin = false;
   currentUser = null;
   tokenInput.value = '';
   document.getElementById('menu-area').innerHTML = '';
   
-  // Update the mode button text back to default
   updateModeBtn();
   
-  // Hide app, show gate
   document.getElementById('app').style.display = 'none';
   document.getElementById('gate').style.display = 'flex';
   document.getElementById('gate-normal').style.display = '';
@@ -296,7 +292,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
-  // Only validate non‑special tokens against Supabase
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -323,7 +318,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ══════════ INSTANT LOAD FROM LOCALSTORAGE (no flash) ══════════
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
@@ -331,19 +325,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
 
-  // Ensure menus is valid
   if (!menus || typeof menus !== 'object') {
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
 
-  // Fill missing cafeterias
   CAFETERIAS.forEach(c => {
     if (!menus[c.id] || !Array.isArray(menus[c.id])) {
       menus[c.id] = [];
     }
   });
 
-  // Compute nextId and sort
   let maxId = 0;
   Object.values(menus).forEach(arr => {
     if (Array.isArray(arr)) {
@@ -353,7 +344,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   nextId = maxId + 1;
 
-  // ══════════ SHOW THE APP IMMEDIATELY ══════════
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
@@ -365,7 +355,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderCafGrid();
 
-  // Restore last cafeteria or pick first
   const lastCaf = localStorage.getItem('selected_caf');
   if (lastCaf && menus[lastCaf] && Array.isArray(menus[lastCaf])) {
     selectedCaf = +lastCaf;
@@ -378,20 +367,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMenu(selectedCaf);
   }
 
-  // ══════════ BACKGROUND UPDATE FROM SUPABASE ══════════
   try {
     const freshMenus = await loadMenusFromServer();
     if (freshMenus && typeof freshMenus === 'object') {
       menus = freshMenus;
-      // Ensure all cafeterias exist
       CAFETERIAS.forEach(c => {
         if (!menus[c.id] || !Array.isArray(menus[c.id])) {
           menus[c.id] = [];
         }
       });
-      // Update localStorage with fresh data
       localStorage.setItem('campus_menus', JSON.stringify(menus));
-      // Re‑render only if something changed
       if (selectedCaf !== null) {
         renderCafGrid();
         renderMenu(selectedCaf);
@@ -401,7 +386,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Background menu update failed, using cached data');
   }
 
-  // ══════════ BACKGROUND TIMESTAMP UPDATE ══════════
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
@@ -409,7 +393,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
       });
       localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
-      // Re‑render menu to show updated timestamps
       if (selectedCaf !== null) {
         renderMenu(selectedCaf);
       }
@@ -705,13 +688,11 @@ function timeAgo(ts) {
 
 /* ─── Periodic token re‑validation ───────────────────────────────────────── */
 async function validateSession() {
-  // Don't run if gate is already showing (user not logged in)
   if (document.getElementById('gate').style.display !== 'none') return;
   
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
-  // Skip re‑validation for special tokens
   if (VALID_TOKENS[token] && VALID_TOKENS[token].special) return;
   
   try {
