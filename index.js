@@ -269,6 +269,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load menus from Supabase (central source)
   menus = await loadMenusFromServer();
 
+  // Ensure every cafeteria key exists (avoids "can't add items" bug)
+  CAFETERIAS.forEach(c => {
+    if (!menus[c.id]) {
+      menus[c.id] = [];
+    }
+  });
+
+  // Load last-updated timestamps from Supabase
+  try {
+    const { data: times } = await supabase.from('last_updated').select('*');
+    if (times) {
+      times.forEach(row => {
+        lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
+      });
+      // Save to localStorage for offline fallback
+      localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
+    }
+  } catch (e) {
+    // If Supabase is offline, timestamps will come from localStorage (if any)
+    console.warn('Could not load timestamps from Supabase');
+  }
+
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
@@ -542,16 +564,17 @@ function escHtml(str) {
 }
 
 function saveLastUpdated() {
-  // Local fallback
+  // Always save locally for offline fallback
   localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
 
-  // Save to Supabase (if connected)
+  // Sync to Supabase if available
   if (typeof supabase !== 'undefined') {
-    // Update each cafeteria's timestamp individually
-    Object.entries(lastUpdated).forEach(async ([cafId, ts]) => {
-      await supabase.from('last_updated').upsert({
+    Object.entries(lastUpdated).forEach(([cafId, ts]) => {
+      supabase.from('last_updated').upsert({
         caf_id: parseInt(cafId),
         updated_at: new Date(ts).toISOString()
+      }).then(({ error }) => {
+        if (error) console.warn('Failed to sync timestamp', error);
       });
     });
   }
