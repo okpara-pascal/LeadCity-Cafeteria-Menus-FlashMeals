@@ -1,3 +1,4 @@
+/* ─── Supabase Setup ─────────────────── */
 const SUPABASE_URL = 'https://ovhsnlrshedhcbkeocaj.supabase.co';   // ⬅️ your URL
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92aHNubHJzaGVkaGNia2VvY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY2MjUsImV4cCI6MjA5NDQ0MjYyNX0.6WNw84mnPJ_ShBbC-PAU7STktl2jPgYE33ybotoRewA'; // ⬅️ your anon key
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
