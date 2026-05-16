@@ -150,7 +150,7 @@ async function tryEnter() {
         .eq('token', val)
         .maybeSingle();
 
-      if (existing) {
+            if (existing) {
         if (existing.revoked === true) {
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
@@ -159,6 +159,10 @@ async function tryEnter() {
           btn.classList.remove('loading');
           btn.textContent = 'Access menus';
           return;
+        } else if (existing.can_reuse === true) {
+          // Admin unrevoked — allow re‑entry, reset can_reuse
+          await supabase.from('tokens').update({ can_reuse: false }).eq('token', val);
+          // Continue to login below
         } else {
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
@@ -307,16 +311,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-      if (!data || data.revoked === true) {
+           if (!data || data.revoked === true) {
+        // Show revoked gate — DON'T clear token yet so the message makes sense
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
         document.getElementById('gate-denied').style.display = '';
         document.querySelector('#gate-denied p').textContent =
-          'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
+          'Access token for this device has been revoked from the server. Please contact FlashMeals for further assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
         return;
+      }
+
+      // If token exists, not revoked, and can_reuse is true → allow re‑entry
+      if (data && data.can_reuse === true) {
+        // Reset can_reuse so it becomes single‑use again
+        await supabase.from('tokens').update({ can_reuse: false }).eq('token', savedToken);
+        // Continue to normal login below
       }
     } catch (e) {
       console.warn('Token validation offline, continuing with cached session');
