@@ -425,11 +425,11 @@ html.logged-in #app {
 .status-pill.unavail::before {
   content: '';
   position: absolute;
-  inset: -2px;                /* makes the ring 4px larger than the pill */
+  inset: 0;                /* makes the ring 4px larger than the pill */
   border-radius: 20px;        /* matches pill shape */
-  border: 1x solid;
+  border: 0.5x solid;
   opacity: 0;
-  animation: wavePulse 1.8s ease-out infinite;
+  animation: wavePulse 2s ease-out infinite;
 }
 
 .status-pill.avail::before {
@@ -440,8 +440,8 @@ html.logged-in #app {
 }
 
 @keyframes wavePulse {
-  0%   { transform: scale(1);   opacity: 0.6; }
-  100% { transform: scale(1.15); opacity: 0;   }
+  0%   { transform: scale(1);   opacity: 0.5; }
+  100% { transform: scale(1.05); opacity: 0;   }
 }  
  
   /* ── Toggle ── */
