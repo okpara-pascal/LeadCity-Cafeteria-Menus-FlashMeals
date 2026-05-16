@@ -237,16 +237,22 @@ document.getElementById('logout-btn').addEventListener('click', function () {
   localStorage.removeItem('current_token');
   localStorage.removeItem('selected_caf');
   localStorage.removeItem('revoked_session');
-  document.getElementById('app').style.display = 'none';
+  
+  // Reset state
+  selectedCaf = null;
+  isAdmin = false;
+  currentUser = null;
+  tokenInput.value = '';
   document.getElementById('menu-area').innerHTML = '';
+  
+  // Update the mode button text back to default
+  updateModeBtn();
+  
+  // Hide app, show gate
+  document.getElementById('app').style.display = 'none';
   document.getElementById('gate').style.display = 'flex';
   document.getElementById('gate-normal').style.display = '';
   document.getElementById('gate-denied').style.display = 'none';
-  tokenInput.value = '';
-  selectedCaf = null;
-  isAdmin = false;
-  updateModeBtn();
-  this.style.display = 'none';
 });
 
 /* ─── Menu loading from Supabase ─────────────────────────────────────────── */
