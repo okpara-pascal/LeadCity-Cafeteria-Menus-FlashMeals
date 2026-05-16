@@ -93,6 +93,20 @@ try {
   if (savedTimes) Object.assign(lastUpdated, JSON.parse(savedTimes));
 } catch(e) {}
 
+/* ─── Failsafe: Ensure gate always shows when revoked_session is set ──────── */
+(function() {
+  if (localStorage.getItem('revoked_session') === 'true') {
+    // Immediately hide app and show gate before any other code runs
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.getElementById('retry-btn').style.display = '';
+    });
+  }
+})();
+
 /* ─── Token formatting ───────────────────────────────────────────────────── */
 function formatToken(val) {
   val = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -170,7 +184,6 @@ async function tryEnter() {
         }
       }
 
-      // No existing row → token was deleted, allow re-entry
       await supabase.from('tokens').insert({ token: val, revoked: false });
     } catch (e) {
       console.warn('Supabase offline, using local check');
@@ -304,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
 
       if (!data) {
-        // Token row deleted entirely (accidental deletion)
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -317,7 +329,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       if (data.revoked === true) {
-        // Token intentionally revoked
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -718,7 +729,6 @@ async function validateSession() {
       .maybeSingle();
 
     if (!data) {
-      // Token deleted
       document.getElementById('app').style.display = 'none';
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('gate-normal').style.display = 'none';
