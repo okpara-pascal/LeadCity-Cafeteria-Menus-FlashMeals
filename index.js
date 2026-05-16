@@ -341,11 +341,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderCafGrid();
-  validateSession();
+  
 
+    // Restore last selected cafeteria or default to first one
   const lastCaf = localStorage.getItem('selected_caf');
   if (lastCaf && menus[lastCaf]) {
     selectedCaf = +lastCaf;
+    renderCafGrid();
+    renderMenu(selectedCaf);
+  } else if (CAFETERIAS.length > 0 && menus[CAFETERIAS[0].id]) {
+    // Fallback: select the first cafeteria
+    selectedCaf = CAFETERIAS[0].id;
     renderCafGrid();
     renderMenu(selectedCaf);
   }
@@ -637,6 +643,9 @@ function timeAgo(ts) {
 
 /* ─── Periodic token re‑validation ───────────────────────────────────────── */
 async function validateSession() {
+   // Don't run if gate is already showing (user not logged in)
+  if (document.getElementById('gate').style.display !== 'none') return;
+  
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
@@ -660,6 +669,7 @@ async function validateSession() {
       document.querySelector('#gate-denied p').textContent =
         'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
       document.getElementById('retry-btn').style.display = '';
+      localStorage.setItem('revoked_session', 'true');
       currentUser = null;
       isAdmin = false;
       selectedCaf = null;
