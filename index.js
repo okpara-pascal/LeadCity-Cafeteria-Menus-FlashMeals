@@ -155,7 +155,7 @@ async function tryEnter() {
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
           document.querySelector('#gate-denied p').textContent =
-            'This token has been revoked from our server. Please contact FlashMeals for a new access token.';
+            'This token has been revoked from our server. Please contact FlashMeals for further assistance.';
           btn.classList.remove('loading');
           btn.textContent = 'Access menus';
           return;
