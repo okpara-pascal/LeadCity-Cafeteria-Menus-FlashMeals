@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('gate-normal').style.display = 'none';
         document.getElementById('gate-denied').style.display = '';
         document.querySelector('#gate-denied p').textContent =
-          'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
+          'Access token for this device has been revoked from the server. Please contact FlashMeals for further assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
         return;
