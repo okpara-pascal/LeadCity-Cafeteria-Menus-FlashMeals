@@ -545,6 +545,10 @@ function saveLastUpdated() {
   localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
 }
 
+  function saveMenus() {
+  localStorage.setItem('campus_menus', JSON.stringify(menus));
+}
+  
 function timeAgo(ts) {
   const sec = Math.floor((Date.now() - ts) / 1000);
   if (sec < 60) return 'just now';
