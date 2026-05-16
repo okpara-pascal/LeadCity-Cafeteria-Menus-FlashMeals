@@ -542,7 +542,19 @@ function escHtml(str) {
 }
 
 function saveLastUpdated() {
+  // Local fallback
   localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
+
+  // Save to Supabase (if connected)
+  if (typeof supabase !== 'undefined') {
+    // Update each cafeteria's timestamp individually
+    Object.entries(lastUpdated).forEach(async ([cafId, ts]) => {
+      await supabase.from('last_updated').upsert({
+        caf_id: parseInt(cafId),
+        updated_at: new Date(ts).toISOString()
+      });
+    });
+  }
 }
 
   function saveMenus() {
