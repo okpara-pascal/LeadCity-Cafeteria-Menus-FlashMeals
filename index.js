@@ -297,20 +297,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
   if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
- /* ─── Periodic token re‑validation ───────────────────────────────────────── */
-async function validateSession() {
-  const token = localStorage.getItem('current_token');
-  if (!token) return;
-  
+  // ══════════ INSTANT VALIDATION (online only) ══════════
   try {
     const { data } = await supabase
       .from('tokens')
-      .select('token')
+      .select('revoked')
       .eq('token', savedToken)
       .maybeSingle();
 
-    if (!data) {
-      // Token deleted from Supabase → boot immediately
+    // If token not found OR revoked = true → boot
+    if (!data || data.revoked === true) {
       localStorage.removeItem('current_token');
       localStorage.removeItem('selected_caf');
       document.getElementById('gate').style.display = 'flex';
@@ -319,28 +315,19 @@ async function validateSession() {
       document.getElementById('gate-denied').style.display = '';
       document.querySelector('#gate-denied p').textContent =
         'Access token for this device has been deleted from the server. Please contact FlashMeals for a new access token.';
-      // Show the "Try again" button as a way back to the gate
       document.getElementById('retry-btn').style.display = '';
-      currentUser = null;
-      isAdmin = false;
-      selectedCaf = null// stop – don't show the app
+      return;
     }
   } catch (e) {
-    // Supabase unreachable → user stays logged in (offline‑friendly)
-    console.warn('Re-validation failed (offline?), skipping.');
+    console.warn('Online validation failed, allowing offline access');
   }
-}
 
-  // Check every 30 seconds
-  setInterval(validateSession, 30000);
-
-  // ══════════ NORMAL LOGIN (token still valid) ══════════
+  // ══════════ NORMAL LOGIN ══════════
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
   menus = await loadMenusFromServer();
 
-  // Compute nextId and sort items by ID
   let maxId = 0;
   Object.values(menus).forEach(arr => {
     arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
@@ -349,12 +336,9 @@ async function validateSession() {
   nextId = maxId + 1;
 
   CAFETERIAS.forEach(c => {
-    if (!menus[c.id]) {
-      menus[c.id] = [];
-    }
+    if (!menus[c.id]) menus[c.id] = [];
   });
 
-  // Load timestamps from Supabase
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
@@ -377,7 +361,7 @@ async function validateSession() {
   }
 
   renderCafGrid();
-  validateSession();   // start periodic re‑validation
+  validateSession();
 
   const lastCaf = localStorage.getItem('selected_caf');
   if (lastCaf && menus[lastCaf]) {
@@ -680,5 +664,39 @@ function timeAgo(ts) {
   const days = Math.floor(hr / 24);
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
+
+  /* ─── Periodic token re‑validation ───────────────────────────────────────── */
+async function validateSession() {
+  const token = localStorage.getItem('current_token');
+  if (!token) return;
+
+  try {
+    const { data } = await supabase
+      .from('tokens')
+      .select('revoked')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (!data || data.revoked === true) {
+      localStorage.removeItem('current_token');
+      localStorage.removeItem('selected_caf');
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'Access token for this device has been deleted from the server. Please contact FlashMeals for a new access token.';
+      document.getElementById('retry-btn').style.display = '';
+      currentUser = null;
+      isAdmin = false;
+      selectedCaf = null;
+    }
+  } catch (e) {
+    console.warn('Re‑validation failed (offline?), skipping.');
+  }
+}
+
+// Check every 30 seconds
+setInterval(validateSession, 30000);
 
  })();
