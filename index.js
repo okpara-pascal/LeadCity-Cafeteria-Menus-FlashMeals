@@ -1,3 +1,8 @@
+(function() {
+/* ─── Supabase Setup ────────────────────────────────────────────────────── */
+const SUPABASE_URL = 'https://ovhsnlrshedhcbkeocaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92aHNubHJzaGVkaGNia2VvY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjY2MjUsImV4cCI6MjA5NDQ0MjYyNX0.6WNw84mnPJ_ShBbC-PAU7STktl2jPgYE33ybotoRewA';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ─── Configuration (tokens) ────────────────────────────────────────────── */
 const VALID_TOKENS = {
@@ -550,3 +555,5 @@ function timeAgo(ts) {
   const days = Math.floor(hr / 24);
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
+
+ })();
