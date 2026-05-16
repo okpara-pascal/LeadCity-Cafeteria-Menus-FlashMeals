@@ -154,7 +154,9 @@ async function tryEnter() {
         .maybeSingle();
 
       if (existing) {
-        // Token already used globally
+        // Token exists in database
+        if (existing.revoked === true) {
+          // Token was revoked by admin
         document.getElementById('gate-normal').style.display = 'none';
         document.getElementById('gate-denied').style.display = '';
         document.querySelector('#gate-denied p').textContent =
@@ -163,9 +165,10 @@ async function tryEnter() {
         btn.textContent = 'Access menus';
         return;
       }
+      }
 
-      // Not used yet – insert it
-      await supabase.from('tokens').insert({ token: val });
+      // Token not in database yet → insert it as used
+      await supabase.from('tokens').insert({ token: val, revoked: false });
     } catch (e) {
       // Supabase offline – fall back to local check
       console.warn('Supabase offline, using local check');
@@ -666,7 +669,7 @@ function timeAgo(ts) {
 }
 
   /* ─── Periodic token re‑validation ───────────────────────────────────────── */
-async function validateSession() {
+if (!user.special)() {
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
