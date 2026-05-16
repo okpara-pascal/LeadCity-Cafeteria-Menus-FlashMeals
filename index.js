@@ -288,20 +288,11 @@ async function saveMenuToServer(cafId, items) {
 /* ─── Auto‑login on page load ────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
-  
-  // No token at all → just show normal gate
-  if (!savedToken || !VALID_TOKENS[savedToken]) {
-    document.getElementById('gate').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('gate-normal').style.display = '';
-    document.getElementById('gate-denied').style.display = 'none';
-    return;
-  }
+  if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
-  // Validate non‑special tokens
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -313,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
 
       if (!data) {
-        // Token deleted
+        // Token row deleted entirely (accidental deletion)
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -322,11 +313,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
-        return; // STOP — don't continue
+        return;
       }
 
       if (data.revoked === true) {
-        // Token revoked
+        // Token intentionally revoked
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -335,15 +326,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Access token for this device has been revoked from the server. Please contact FlashMeals for further assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
-        return; // STOP — don't continue
+        return;
       }
     } catch (e) {
-      // Offline — allow access
       console.warn('Token validation offline, continuing with cached session');
     }
   }
 
-  // ══════════ TOKEN IS VALID — LOAD THE APP ══════════
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
@@ -393,7 +382,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMenu(selectedCaf);
   }
 
-  // Background updates
   try {
     const freshMenus = await loadMenusFromServer();
     if (freshMenus && typeof freshMenus === 'object') {
