@@ -353,6 +353,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* ─── Admin mode toggle ──────────────────────────────────────────────────── */
 document.getElementById('mode-toggle').addEventListener('click', function () {
+  // Force commit any active inline edit before switching modes
+  if (document.activeElement && document.activeElement.closest('.menu-table')) {
+    document.activeElement.blur();
+  }
   if (currentUser && currentUser.role !== 'admin') {
     alert('Admin mode requires an administrator token.');
     return;
