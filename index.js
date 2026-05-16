@@ -287,17 +287,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
   if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
-  // Skip validation for special tokens (they never go into Supabase)
-  if (!VALID_TOKENS[savedToken].special) {
+  const user = VALID_TOKENS[savedToken];
+  currentUser = user;
+
+  // Only validate non‑special tokens against Supabase
+  if (!user.special) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('tokens')
         .select('revoked')
         .eq('token', savedToken)
         .maybeSingle();
 
+      if (error) throw error;
+
       if (!data || data.revoked === true) {
-        // Show revoked gate, DON'T clear token yet
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -309,26 +313,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
     } catch (e) {
-      console.warn('Online validation failed, allowing offline access');
+      // If Supabase fails, allow offline access for non‑revoked tokens
+      console.warn('Token validation offline, continuing with cached session');
     }
   }
 
-  const user = VALID_TOKENS[savedToken];
-  currentUser = user;
+  // Load menus (always runs, even if validation failed)
+  try {
+    menus = await loadMenusFromServer();
+  } catch (e) {
+    console.warn('Menu loading failed, using defaults');
+    menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+  }
 
-  menus = await loadMenusFromServer();
+  // Ensure menus is never null/undefined
+  if (!menus || typeof menus !== 'object') {
+    menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+  }
 
+  // Compute nextId and sort
   let maxId = 0;
   Object.values(menus).forEach(arr => {
-    arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
-    arr.sort((a, b) => a.id - b.id);
+    if (Array.isArray(arr)) {
+      arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
+      arr.sort((a, b) => a.id - b.id);
+    }
   });
   nextId = maxId + 1;
 
+  // Fill missing cafeterias
   CAFETERIAS.forEach(c => {
-    if (!menus[c.id]) menus[c.id] = [];
+    if (!menus[c.id] || !Array.isArray(menus[c.id])) {
+      menus[c.id] = [];
+    }
   });
 
+  // Load timestamps (non‑critical, wrap in try)
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
@@ -338,9 +358,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
     }
   } catch (e) {
-    console.warn('Could not load timestamps from Supabase');
+    console.warn('Could not load timestamps');
   }
 
+  // Show the app
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
@@ -350,16 +371,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
+  // Render the grid
   renderCafGrid();
 
-  // Restore last selected cafeteria or default to first one
+  // Restore last cafeteria or pick first
   const lastCaf = localStorage.getItem('selected_caf');
-  if (lastCaf && menus[lastCaf]) {
+  if (lastCaf && menus[lastCaf] && Array.isArray(menus[lastCaf])) {
     selectedCaf = +lastCaf;
     renderCafGrid();
     renderMenu(selectedCaf);
-  } else if (CAFETERIAS.length > 0 && menus[CAFETERIAS[0].id]) {
+  } else if (CAFETERIAS.length > 0) {
     selectedCaf = CAFETERIAS[0].id;
+    if (!menus[selectedCaf]) menus[selectedCaf] = [];
     renderCafGrid();
     renderMenu(selectedCaf);
   }
