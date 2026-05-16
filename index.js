@@ -130,65 +130,66 @@ async function tryEnter() {
   btn.textContent = 'Verifying...';
   gateErr.textContent = '';
 
-  const user = VALID_TOKENS[val];
+    const user = VALID_TOKENS[val];
   if (!user) {
+    // Token doesn't exist at all – just deny access (not "already claimed")
     setTimeout(() => {
       document.getElementById('gate-normal').style.display = 'none';
       document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'This token is not recognised. Please contact FlashMeals for a valid access token.';
       btn.classList.remove('loading');
       btn.textContent = 'Access menus';
     }, 1200);
     return;
   }
 
-  // 1) Check server-side token usage (Supabase)
-  try {
-    const { data: existing } = await supabase
-      .from('tokens')
-      .select('token')
-      .eq('token', val)
-      .maybeSingle();
+  // 2) Check server-side token usage ONLY for valid, non‑special tokens
+  if (!user.special) {
+    try {
+      const { data: existing } = await supabase
+        .from('tokens')
+        .select('token')
+        .eq('token', val)
+        .maybeSingle();
 
-    if (existing) {
-      // Token already used globally
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.querySelector('#gate-denied p').textContent =
-        'This token has already been claimed. Each token can only be used once.';
-      btn.classList.remove('loading');
-      btn.textContent = 'Access menus';
-      return;
-    }
+      if (existing) {
+        // Token already used globally
+        document.getElementById('gate-normal').style.display = 'none';
+        document.getElementById('gate-denied').style.display = '';
+        document.querySelector('#gate-denied p').textContent =
+          'This token has already been claimed. Each token can only be used once.';
+        btn.classList.remove('loading');
+        btn.textContent = 'Access menus';
+        return;
+      }
 
-    // Not used yet – insert it (unless special)
-    if (!user.special) {
+      // Not used yet – insert it
       await supabase.from('tokens').insert({ token: val });
+    } catch (e) {
+      // Supabase offline – fall back to local check
+      console.warn('Supabase offline, using local check');
+      if (localStorage.getItem('token_used_' + val) === 'true') {
+        document.getElementById('gate-normal').style.display = 'none';
+        document.getElementById('gate-denied').style.display = '';
+        document.querySelector('#gate-denied p').textContent =
+          'This token has already been claimed.';
+        btn.classList.remove('loading');
+        btn.textContent = 'Access menus';
+        return;
+      }
     }
-  } catch (e) {
-    // Supabase unreachable – fall back to local check
-    console.warn('Supabase offline, using local check');
-    if (!user.special && localStorage.getItem('token_used_' + val) === 'true') {
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.querySelector('#gate-denied p').textContent =
-        'This token has already been claimed.';
-      btn.classList.remove('loading');
-      btn.textContent = 'Access menus';
-      return;
-    }
-    // if offline, we still allow login (or you can block it – your choice)
   }
 
-  // 2) Local mark (as backup)
+  // 3) Local mark (as backup)
   if (!user.special) {
     localStorage.setItem('token_used_' + val, 'true');
   }
 
-    // Wait a short moment for UX, then load menus from server
+  // 4) Complete login
   await new Promise(resolve => setTimeout(resolve, 1200));
-
-  // Load central menus from Supabase (fallback to localStorage if offline)
   menus = await loadMenusFromServer();
+  // … rest of your completion code (the block that sets currentUser, shows app, etc.)
 
  // Compute nextId and sort items by ID
   let maxId = 0;
