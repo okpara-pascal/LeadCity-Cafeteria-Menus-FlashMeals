@@ -142,6 +142,7 @@ async function tryEnter() {
     return;
   }
 
+  console.log('DOMContentLoaded running, token:', savedToken);
   if (!user.special) {
     try {
       const { data: existing } = await supabase
@@ -320,11 +321,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Access token for this device has been revoked from the server. Please contact FlashMeals for further assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
+                   console.log('TOKEN IS REVOKED — showing gate');
         return;
       }
 
       // If token exists, not revoked, and can_reuse is true → allow re‑entry
       if (data && data.can_reuse === true) {
+        console.log('TOKEN CAN REUSE — allowing login');
         // Reset can_reuse so it becomes single‑use again
         await supabase.from('tokens').update({ can_reuse: false }).eq('token', savedToken);
         // Continue to normal login below
