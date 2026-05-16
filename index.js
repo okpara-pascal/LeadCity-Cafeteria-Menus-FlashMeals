@@ -12,7 +12,6 @@ const VALID_TOKENS = {
   'CAMP-2024-DELT': { name: 'Student',   role: 'student' },
   'CAMP-2024-EPSL': { name: 'Student', role: 'student' },
   'ADMI-9999-ROOT': { name: 'Administrator',     role: 'admin'   },
-  // special reusable tokens
   'DEVL-1234-ABCD': { name: 'Developer',   role: 'admin',   special: true },
   'STUD-5678-EFGH': { name: 'Test Student', role: 'student', special: true },
 };
@@ -82,7 +81,7 @@ const DEFAULT_MENUS = {
 };
 
 /* ─── State ──────────────────────────────────────────────────────────────── */
-let menus = JSON.parse(JSON.stringify(DEFAULT_MENUS)); // will be overwritten on load
+let menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
 let currentUser  = null;
 let isAdmin      = false;
 let selectedCaf  = null;
@@ -130,23 +129,21 @@ async function tryEnter() {
   btn.textContent = 'Verifying...';
   gateErr.textContent = '';
 
-    const user = VALID_TOKENS[val];
+  const user = VALID_TOKENS[val];
   if (!user) {
-    // Token doesn't exist at all – just deny access (not "already claimed")
     setTimeout(() => {
       document.getElementById('gate-normal').style.display = 'none';
       document.getElementById('gate-denied').style.display = '';
       document.querySelector('#gate-denied p').textContent =
-        'This token is not recognised. Please check spelling or contact FlashMeals for a valid access token.';
+        'This token is not recognised. Please contact FlashMeals for a valid access token.';
       btn.classList.remove('loading');
       btn.textContent = 'Access menus';
     }, 1200);
     return;
   }
 
-  // 2) Check server-side token usage ONLY for valid, non‑special tokens
   if (!user.special) {
-        try {
+    try {
       const { data: existing } = await supabase
         .from('tokens')
         .select('revoked')
@@ -188,40 +185,27 @@ async function tryEnter() {
     }
   }
 
-  // 3) Local mark (as backup)
   if (!user.special) {
     localStorage.setItem('token_used_' + val, 'true');
   }
 
-  // 4) Complete login
   await new Promise(resolve => setTimeout(resolve, 1200));
   menus = await loadMenusFromServer();
-  // … rest of your completion code (the block that sets currentUser, shows app, etc.)
 
- // Compute nextId and sort items by ID
   let maxId = 0;
   Object.values(menus).forEach(arr => {
     arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
     arr.sort((a, b) => a.id - b.id);
   });
   nextId = maxId + 1;
-  
+
   CAFETERIAS.forEach(c => {
     if (!menus[c.id]) menus[c.id] = [];
   });
 
-  // Set user and complete login
   currentUser = user;
-
-  // Mark token as used only if NOT special
-  if (!user.special) {
-    localStorage.setItem('token_used_' + val, 'true');
-  }
-
-  // Always store the token so auto‑login works on refresh
   localStorage.setItem('current_token', val);
 
-  // Show/hide sign‑out button based on token type
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.style.display = user.special ? '' : 'none';
@@ -242,13 +226,10 @@ document.getElementById('retry-btn').addEventListener('click', function () {
   gateErr.textContent = '';
 });
 
-/* ─── Sign‑out (only for special tokens) ─────────────────────────────────── */
+/* ─── Sign‑out ───────────────────────────────────────────────────────────── */
 document.getElementById('logout-btn').addEventListener('click', function () {
-  // Clear all login data
   localStorage.removeItem('current_token');
   localStorage.removeItem('selected_caf');
-
-  // Hide app, show gate immediately
   document.getElementById('app').style.display = 'none';
   document.getElementById('menu-area').innerHTML = '';
   document.getElementById('gate').style.display = 'flex';
@@ -258,8 +239,6 @@ document.getElementById('logout-btn').addEventListener('click', function () {
   selectedCaf = null;
   isAdmin = false;
   updateModeBtn();
-
-  // Hide the sign‑out button itself
   this.style.display = 'none';
 });
 
@@ -271,7 +250,6 @@ async function loadMenusFromServer() {
     if (data && data.length > 0) {
       const loaded = {};
       data.forEach(row => { loaded[row.id] = row.data; });
-      // Fill missing cafeterias with empty arrays
       CAFETERIAS.forEach(c => {
         if (!loaded[c.id]) loaded[c.id] = [];
       });
@@ -280,7 +258,6 @@ async function loadMenusFromServer() {
   } catch (e) {
     console.warn('Could not load menus from Supabase, using local copy');
   }
-  // Supabase empty or offline → use local storage or defaults
   try {
     const saved = localStorage.getItem('campus_menus');
     return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
@@ -292,7 +269,6 @@ async function loadMenusFromServer() {
 async function saveMenuToServer(cafId, items) {
   try {
     await supabase.from('menus').upsert({ id: cafId, data: items });
-    // Also update local storage for offline fallback
     localStorage.setItem('campus_menus', JSON.stringify(menus));
   } catch (e) {
     console.warn('Failed to save menu to Supabase, saved locally only');
@@ -304,7 +280,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
   if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
-  // ══════════ INSTANT VALIDATION (online only) ══════════
   try {
     const { data } = await supabase
       .from('tokens')
@@ -312,7 +287,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       .eq('token', savedToken)
       .maybeSingle();
 
-    // If token not found OR revoked = true → boot
     if (!data || data.revoked === true) {
       localStorage.removeItem('current_token');
       localStorage.removeItem('selected_caf');
@@ -321,7 +295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('gate-normal').style.display = 'none';
       document.getElementById('gate-denied').style.display = '';
       document.querySelector('#gate-denied p').textContent =
-        'Access token for this device has been deleted from the server. Please contact FlashMeals for a new access token.';
+        'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
       document.getElementById('retry-btn').style.display = '';
       return;
     }
@@ -329,7 +303,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Online validation failed, allowing offline access');
   }
 
-  // ══════════ NORMAL LOGIN ══════════
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
@@ -380,13 +353,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* ─── Admin mode toggle ──────────────────────────────────────────────────── */
 document.getElementById('mode-toggle').addEventListener('click', function () {
-  // If any input is still focused, force its change to commit first
   const activeEl = document.activeElement;
   if (activeEl && (activeEl.classList.contains('edit-name') || activeEl.classList.contains('edit-price'))) {
-    activeEl.blur();                        // trigger change event synchronously
+    activeEl.blur();
   }
 
-  // Use a tiny delay to guarantee the change event completed before we re‑render
   setTimeout(() => {
     if (currentUser && currentUser.role !== 'admin') {
       alert('Admin mode requires an administrator token.');
@@ -395,7 +366,7 @@ document.getElementById('mode-toggle').addEventListener('click', function () {
     isAdmin = !isAdmin;
     updateModeBtn();
     if (selectedCaf !== null) renderMenu(selectedCaf);
-  }, 0);   // 0ms delay – defers the call until after the current event cycle
+  }, 0);
 });
 
 function updateModeBtn() {
@@ -454,12 +425,10 @@ function renderMenu(cafId) {
           <input class="edit-name" value="${escHtml(item.name)}"
                  data-cid="${cafId}" data-iid="${item.id}" data-field="name"/>
         </td>
-
         <td class="col-price">
           ₦<input class="edit-price" type="number" min="0" value="${item.price}"
                   data-cid="${cafId}" data-iid="${item.id}" data-field="price"/>
         </td>
-
         <td class="col-status">
   <div class="toggle-wrapper">
     <label class="toggle" aria-label="Toggle availability">
@@ -470,7 +439,6 @@ function renderMenu(cafId) {
     <span class="avail-label">${item.available ? 'Available' : 'Unavailable'}</span>
   </div>
 </td>
-
         <td class="col-action">
           <button class="del-btn" data-cid="${cafId}" data-iid="${item.id}">
             <i class="ti ti-trash" aria-hidden="true"></i> Remove
@@ -529,7 +497,6 @@ function renderMenu(cafId) {
       </table>
     </div>`;
  
-  /* Wire up admin controls */
   if (isAdmin) {
     area.querySelectorAll('.avail-toggle').forEach(el => {
       el.addEventListener('change', function () {
@@ -540,7 +507,6 @@ function renderMenu(cafId) {
           if (lbl) lbl.textContent = item.available ? 'Available' : 'Unavailable';
           lastUpdated[+this.dataset.cid] = Date.now();
           saveLastUpdated();
-          // Save whole cafeteria to Supabase
           saveMenuToServer(+this.dataset.cid, menus[+this.dataset.cid]);
           renderCafGrid();
         }
@@ -641,10 +607,7 @@ function escHtml(str) {
 }
 
 function saveLastUpdated() {
-  // Always save locally for offline fallback
   localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
-
-  // Sync to Supabase if available
   if (typeof supabase !== 'undefined') {
     Object.entries(lastUpdated).forEach(([cafId, ts]) => {
       supabase.from('last_updated').upsert({
@@ -657,7 +620,7 @@ function saveLastUpdated() {
   }
 }
 
-  function saveMenus() {
+function saveMenus() {
   localStorage.setItem('campus_menus', JSON.stringify(menus));
 }
   
@@ -672,7 +635,7 @@ function timeAgo(ts) {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-  /* ─── Periodic token re‑validation ───────────────────────────────────────── */
+/* ─── Periodic token re‑validation ───────────────────────────────────────── */
 async function validateSession() {
   const token = localStorage.getItem('current_token');
   if (!token) return;
@@ -703,7 +666,6 @@ async function validateSession() {
   }
 }
 
-// Check every 30 seconds
 setInterval(validateSession, 30000);
 
- })();
+})();
