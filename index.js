@@ -693,10 +693,12 @@ function escHtml(str) {
 function saveLastUpdated() {
   localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
   if (typeof supabase !== 'undefined') {
+    const token = localStorage.getItem('current_token') || 'unknown';
     Object.entries(lastUpdated).forEach(([cafId, ts]) => {
       supabase.from('last_updated').upsert({
         caf_id: parseInt(cafId),
-        updated_at: new Date(ts).toISOString()
+        updated_at: new Date(ts).toISOString(),
+        updated_by: token
       }).then(({ error }) => {
         if (error) console.warn('Failed to sync timestamp', error);
       });
