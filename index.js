@@ -353,17 +353,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* ─── Admin mode toggle ──────────────────────────────────────────────────── */
 document.getElementById('mode-toggle').addEventListener('click', function () {
-  // Force commit any active inline edit before switching modes
-  if (document.activeElement && document.activeElement.closest('.menu-table')) {
-    document.activeElement.blur();
+  // If any input is still focused, force its change to commit first
+  const activeEl = document.activeElement;
+  if (activeEl && (activeEl.classList.contains('edit-name') || activeEl.classList.contains('edit-price'))) {
+    activeEl.blur();                        // trigger change event synchronously
   }
-  if (currentUser && currentUser.role !== 'admin') {
-    alert('Admin mode requires an administrator token.');
-    return;
-  }
-  isAdmin = !isAdmin;
-  updateModeBtn();
-  if (selectedCaf !== null) renderMenu(selectedCaf);
+
+  // Use a tiny delay to guarantee the change event completed before we re‑render
+  setTimeout(() => {
+    if (currentUser && currentUser.role !== 'admin') {
+      alert('Admin mode requires an administrator token.');
+      return;
+    }
+    isAdmin = !isAdmin;
+    updateModeBtn();
+    if (selectedCaf !== null) renderMenu(selectedCaf);
+  }, 0);   // 0ms delay – defers the call until after the current event cycle
 });
 
 function updateModeBtn() {
