@@ -150,23 +150,16 @@ async function tryEnter() {
         .eq('token', val)
         .maybeSingle();
 
-            if (existing) {
+      if (existing) {
         if (existing.revoked === true) {
-          // Token is currently revoked
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
           document.querySelector('#gate-denied p').textContent =
-            'This token has been revoked from our server. Please contact FlashMeals for a new access token.';
+            'This token has been revoked from our server. Please contact FlashMeals for further assistance.';
           btn.classList.remove('loading');
           btn.textContent = 'Access menus';
           return;
-        } else if (existing.can_reuse === true) {
-          // Token was unrevoked by admin — allow re-entry
-          // Reset the can_reuse flag so it becomes single-use again
-          await supabase.from('tokens').update({ can_reuse: false }).eq('token', val);
-          // Continue to login below (don't return)
         } else {
-          // Token exists, not revoked, not reusable → already claimed
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
           document.querySelector('#gate-denied p').textContent =
