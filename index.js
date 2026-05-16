@@ -146,7 +146,7 @@ async function tryEnter() {
     try {
       const { data: existing } = await supabase
         .from('tokens')
-        .select('revoked')
+                .select('revoked, can_reuse')
         .eq('token', val)
         .maybeSingle();
 
@@ -311,8 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-           if (!data || data.revoked === true) {
-        // Show revoked gate — DON'T clear token yet so the message makes sense
+                 if (!data || data.revoked === true) {
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
