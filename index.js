@@ -170,6 +170,7 @@ async function tryEnter() {
         }
       }
 
+      // No existing row → token was deleted, allow re-entry
       await supabase.from('tokens').insert({ token: val, revoked: false });
     } catch (e) {
       console.warn('Supabase offline, using local check');
@@ -302,7 +303,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-      if (!data || data.revoked === true) {
+      if (!data) {
+        // Token row deleted entirely (accidental deletion)
+        document.getElementById('gate').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('gate-normal').style.display = 'none';
+        document.getElementById('gate-denied').style.display = '';
+        document.querySelector('#gate-denied p').textContent =
+          'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
+        document.getElementById('retry-btn').style.display = '';
+        localStorage.setItem('revoked_session', 'true');
+        return;
+      }
+
+      if (data.revoked === true) {
+        // Token intentionally revoked
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -702,7 +717,23 @@ async function validateSession() {
       .eq('token', token)
       .maybeSingle();
 
-    if (!data || data.revoked === true) {
+    if (!data) {
+      // Token deleted
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
+      document.getElementById('retry-btn').style.display = '';
+      localStorage.setItem('revoked_session', 'true');
+      currentUser = null;
+      isAdmin = false;
+      selectedCaf = null;
+      return;
+    }
+
+    if (data.revoked === true) {
       document.getElementById('app').style.display = 'none';
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('gate-normal').style.display = 'none';
