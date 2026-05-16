@@ -190,7 +190,14 @@ async function tryEnter() {
   // Load central menus from Supabase (fallback to localStorage if offline)
   menus = await loadMenusFromServer();
 
-  // Ensure every cafeteria has at least an empty array
+ // Compute nextId and sort items by ID
+  let maxId = 0;
+  Object.values(menus).forEach(arr => {
+    arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
+    arr.sort((a, b) => a.id - b.id);
+  });
+  nextId = maxId + 1;
+  
   CAFETERIAS.forEach(c => {
     if (!menus[c.id]) menus[c.id] = [];
   });
@@ -256,12 +263,16 @@ async function loadMenusFromServer() {
     if (data && data.length > 0) {
       const loaded = {};
       data.forEach(row => { loaded[row.id] = row.data; });
+      // Fill missing cafeterias with empty arrays
+      CAFETERIAS.forEach(c => {
+        if (!loaded[c.id]) loaded[c.id] = [];
+      });
       return loaded;
     }
   } catch (e) {
     console.warn('Could not load menus from Supabase, using local copy');
   }
-  // Fallback to local storage or defaults
+  // Supabase empty or offline → use local storage or defaults
   try {
     const saved = localStorage.getItem('campus_menus');
     return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
@@ -291,7 +302,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load menus from Supabase (central source)
   menus = await loadMenusFromServer();
 
-  // Ensure every cafeteria key exists (avoids "can't add items" bug)
+  // Compute nextId and sort items by ID
+  let maxId = 0;
+  Object.values(menus).forEach(arr => {
+    arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
+    arr.sort((a, b) => a.id - b.id);
+  });
+  nextId = maxId + 1;
+  
   CAFETERIAS.forEach(c => {
     if (!menus[c.id]) {
       menus[c.id] = [];
