@@ -297,10 +297,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
   if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
+ /* ─── Periodic token re‑validation ───────────────────────────────────────── */
+async function validateSession() {
+  const token = localStorage.getItem('current_token');
+  if (!token) return;
+  
+  try {
+    const { data } = await supabase
+      .from('tokens')
+      .select('token')
+      .eq('token', savedToken)
+      .maybeSingle();
+
+    if (!data) {
+      // Token deleted from Supabase → boot immediately
+      localStorage.removeItem('current_token');
+      localStorage.removeItem('selected_caf');
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'Access token for this device has been deleted from the server. Please contact FlashMeals for a new access token.';
+      // Show the "Try again" button as a way back to the gate
+      document.getElementById('retry-btn').style.display = '';
+      currentUser = null;
+      isAdmin = false;
+      selectedCaf = null// stop – don't show the app
+    }
+  } catch (e) {
+    // Supabase unreachable → user stays logged in (offline‑friendly)
+    console.warn('Re-validation failed (offline?), skipping.');
+  }
+}
+
+  // Check every 30 seconds
+  setInterval(validateSession, 30000);
+
+  // ══════════ NORMAL LOGIN (token still valid) ══════════
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
-  // Load menus from Supabase (central source)
   menus = await loadMenusFromServer();
 
   // Compute nextId and sort items by ID
@@ -310,25 +347,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     arr.sort((a, b) => a.id - b.id);
   });
   nextId = maxId + 1;
-  
+
   CAFETERIAS.forEach(c => {
     if (!menus[c.id]) {
       menus[c.id] = [];
     }
   });
 
-  // Load last-updated timestamps from Supabase
+  // Load timestamps from Supabase
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
       times.forEach(row => {
         lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
       });
-      // Save to localStorage for offline fallback
       localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
     }
   } catch (e) {
-    // If Supabase is offline, timestamps will come from localStorage (if any)
     console.warn('Could not load timestamps from Supabase');
   }
 
@@ -342,8 +377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderCafGrid();
+  validateSession();   // start periodic re‑validation
 
-  // Restore last selected cafeteria
   const lastCaf = localStorage.getItem('selected_caf');
   if (lastCaf && menus[lastCaf]) {
     selectedCaf = +lastCaf;
