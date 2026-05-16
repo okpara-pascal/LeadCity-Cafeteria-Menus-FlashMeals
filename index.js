@@ -640,6 +640,9 @@ async function validateSession() {
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
+  // Skip re‑validation for special tokens (they never get inserted into Supabase)
+  if (VALID_TOKENS[token] && VALID_TOKENS[token].special) return;
+  
   try {
     const { data } = await supabase
       .from('tokens')
