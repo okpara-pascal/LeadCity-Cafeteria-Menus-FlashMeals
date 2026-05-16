@@ -293,6 +293,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
+  let tokenValid = true;
+
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -313,10 +315,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
-        return;
-      }
-
-      if (data.revoked === true) {
+        tokenValid = false;
+      } else if (data.revoked === true) {
         // Token intentionally revoked
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
@@ -326,13 +326,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           'Access token for this device has been revoked from the server. Please contact FlashMeals for further assistance.';
         document.getElementById('retry-btn').style.display = '';
         localStorage.setItem('revoked_session', 'true');
-        return;
+        tokenValid = false;
       }
     } catch (e) {
       console.warn('Token validation offline, continuing with cached session');
     }
   }
 
+  // If token is not valid, stop here — don't load menus or show app
+  if (!tokenValid) return;
+
+  // ══════════ TOKEN IS VALID — CONTINUE LOADING ══════════
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
