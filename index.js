@@ -673,7 +673,7 @@ function timeAgo(ts) {
 }
 
   /* ─── Periodic token re‑validation ───────────────────────────────────────── */
-if (!user.special)() {
+async function validateSession() {
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
