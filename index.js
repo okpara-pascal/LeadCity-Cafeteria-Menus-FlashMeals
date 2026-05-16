@@ -184,23 +184,40 @@ async function tryEnter() {
     localStorage.setItem('token_used_' + val, 'true');
   }
 
-  // 3) Complete login
-  setTimeout(() => {
-    currentUser = user;
-    localStorage.setItem('current_token', val);
+    // Wait a short moment for UX, then load menus from server
+  await new Promise(resolve => setTimeout(resolve, 1200));
 
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.style.display = user.special ? '' : 'none';
-    }
+  // Load central menus from Supabase (fallback to localStorage if offline)
+  menus = await loadMenusFromServer();
 
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    document.getElementById('logged-as').textContent = user.name;
-    btn.classList.remove('loading');
-    btn.textContent = 'Access menus';
-    renderCafGrid();
-  }, 1200);
+  // Ensure every cafeteria has at least an empty array
+  CAFETERIAS.forEach(c => {
+    if (!menus[c.id]) menus[c.id] = [];
+  });
+
+  // Set user and complete login
+  currentUser = user;
+
+  // Mark token as used only if NOT special
+  if (!user.special) {
+    localStorage.setItem('token_used_' + val, 'true');
+  }
+
+  // Always store the token so auto‑login works on refresh
+  localStorage.setItem('current_token', val);
+
+  // Show/hide sign‑out button based on token type
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.style.display = user.special ? '' : 'none';
+  }
+
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('logged-as').textContent = user.name;
+  btn.classList.remove('loading');
+  btn.textContent = 'Access menus';
+  renderCafGrid();
 }
 
 document.getElementById('retry-btn').addEventListener('click', function () {
