@@ -422,28 +422,22 @@ html.logged-in #app {
   .status-pill.avail   { background: var(--success-bg); color: var(--success-text); }
   .status-pill.unavail { background: var(--danger-bg); color: var(--danger-text); }
 
-.status-pill.avail::before,
-.status-pill.unavail::before {
-  content: '';
-  position: absolute;
-  inset: -2px;                /* makes the ring 4px larger than the pill */
-  border-radius: 20px;        /* matches pill shape */
-  border: 1x solid;
-  opacity: 0;
-  animation: wavePulse 2s ease-out infinite;
+.status-pill.avail {
+  animation: pulse-green 2s ease-in-out infinite;
+}
+.status-pill.unavail {
+  animation: pulse-red 2s ease-in-out infinite;
 }
 
-.status-pill.avail::before {
-  border-color: #3B6D11;      /* green wave */
-}
-.status-pill.unavail::before {
-  border-color: #A32D2D;      /* red wave */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 109, 17, 0.7); }
+  50%      { box-shadow: 0 0 0 4px rgba(59, 109, 17, 0); }
 }
 
-@keyframes wavePulse {
-  0%   { transform: scale(1);   opacity: 0.6; }
-  100% { transform: scale(1.12); opacity: 0;   }
-}  
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(163, 45, 45, 0.7); }
+  50%      { box-shadow: 0 0 0 4px rgba(163, 45, 45, 0); }
+}
  
   /* ── Toggle ── */
   .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
