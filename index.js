@@ -137,7 +137,7 @@ async function tryEnter() {
       document.getElementById('gate-normal').style.display = 'none';
       document.getElementById('gate-denied').style.display = '';
       document.querySelector('#gate-denied p').textContent =
-        'This token is not recognised. Please cross-check spelling or contact FlashMeals for a valid access token.';
+        'This token is not recognised. Please check spelling or contact FlashMeals for a valid access token.';
       btn.classList.remove('loading');
       btn.textContent = 'Access menus';
     }, 1200);
