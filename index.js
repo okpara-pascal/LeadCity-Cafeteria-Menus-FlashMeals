@@ -146,26 +146,23 @@ async function tryEnter() {
 
   // 2) Check server-side token usage ONLY for valid, non‑special tokens
   if (!user.special) {
-    try {
+        try {
       const { data: existing } = await supabase
         .from('tokens')
-        .select('token')
+        .select('revoked')
         .eq('token', val)
         .maybeSingle();
 
       if (existing) {
-        // Token exists in database
         if (existing.revoked === true) {
-          // Token was revoked by admin
-        document.getElementById('gate-normal').style.display = 'none';
-        document.getElementById('gate-denied').style.display = '';
-        document.querySelector('#gate-denied p').textContent =
-          'This token has already been claimed. Each token can only be used once.';
-        btn.classList.remove('loading');
-        btn.textContent = 'Access menus';
-        return;
-          } else {
-          // Token exists and is not revoked → already used
+          document.getElementById('gate-normal').style.display = 'none';
+          document.getElementById('gate-denied').style.display = '';
+          document.querySelector('#gate-denied p').textContent =
+            'This token has been revoked from our server. Please contact FlashMeals for a new access token.';
+          btn.classList.remove('loading');
+          btn.textContent = 'Access menus';
+          return;
+        } else {
           document.getElementById('gate-normal').style.display = 'none';
           document.getElementById('gate-denied').style.display = '';
           document.querySelector('#gate-denied p').textContent =
@@ -173,13 +170,11 @@ async function tryEnter() {
           btn.classList.remove('loading');
           btn.textContent = 'Access menus';
           return;
-      }
+        }
       }
 
-      // Token not in database yet → insert it as used
       await supabase.from('tokens').insert({ token: val, revoked: false });
     } catch (e) {
-      // Supabase offline – fall back to local check
       console.warn('Supabase offline, using local check');
       if (localStorage.getItem('token_used_' + val) === 'true') {
         document.getElementById('gate-normal').style.display = 'none';
