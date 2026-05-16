@@ -313,23 +313,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
     } catch (e) {
-      // If Supabase fails, allow offline access for non‑revoked tokens
       console.warn('Token validation offline, continuing with cached session');
     }
   }
 
-  // Load menus (always runs, even if validation failed)
+  // ══════════ INSTANT LOAD FROM LOCALSTORAGE (no flash) ══════════
   try {
-    menus = await loadMenusFromServer();
+    const saved = localStorage.getItem('campus_menus');
+    menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
   } catch (e) {
-    console.warn('Menu loading failed, using defaults');
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
 
-  // Ensure menus is never null/undefined
+  // Ensure menus is valid
   if (!menus || typeof menus !== 'object') {
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
+
+  // Fill missing cafeterias
+  CAFETERIAS.forEach(c => {
+    if (!menus[c.id] || !Array.isArray(menus[c.id])) {
+      menus[c.id] = [];
+    }
+  });
 
   // Compute nextId and sort
   let maxId = 0;
@@ -341,27 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   nextId = maxId + 1;
 
-  // Fill missing cafeterias
-  CAFETERIAS.forEach(c => {
-    if (!menus[c.id] || !Array.isArray(menus[c.id])) {
-      menus[c.id] = [];
-    }
-  });
-
-  // Load timestamps (non‑critical, wrap in try)
-  try {
-    const { data: times } = await supabase.from('last_updated').select('*');
-    if (times) {
-      times.forEach(row => {
-        lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
-      });
-      localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
-    }
-  } catch (e) {
-    console.warn('Could not load timestamps');
-  }
-
-  // Show the app
+  // ══════════ SHOW THE APP IMMEDIATELY ══════════
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
@@ -371,7 +357,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-  // Render the grid
   renderCafGrid();
 
   // Restore last cafeteria or pick first
@@ -385,6 +370,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!menus[selectedCaf]) menus[selectedCaf] = [];
     renderCafGrid();
     renderMenu(selectedCaf);
+  }
+
+  // ══════════ BACKGROUND UPDATE FROM SUPABASE ══════════
+  try {
+    const freshMenus = await loadMenusFromServer();
+    if (freshMenus && typeof freshMenus === 'object') {
+      menus = freshMenus;
+      // Ensure all cafeterias exist
+      CAFETERIAS.forEach(c => {
+        if (!menus[c.id] || !Array.isArray(menus[c.id])) {
+          menus[c.id] = [];
+        }
+      });
+      // Update localStorage with fresh data
+      localStorage.setItem('campus_menus', JSON.stringify(menus));
+      // Re‑render only if something changed
+      if (selectedCaf !== null) {
+        renderCafGrid();
+        renderMenu(selectedCaf);
+      }
+    }
+  } catch (e) {
+    console.warn('Background menu update failed, using cached data');
+  }
+
+  // ══════════ BACKGROUND TIMESTAMP UPDATE ══════════
+  try {
+    const { data: times } = await supabase.from('last_updated').select('*');
+    if (times) {
+      times.forEach(row => {
+        lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
+      });
+      localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
+      // Re‑render menu to show updated timestamps
+      if (selectedCaf !== null) {
+        renderMenu(selectedCaf);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load timestamps');
   }
 });
 
