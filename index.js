@@ -537,6 +537,7 @@ document.getElementById('confirm-add').addEventListener('click', () => {
   const price = +document.getElementById('new-price').value;
   if (!name)  { document.getElementById('new-name').focus();  return; }
   if (!price) { document.getElementById('new-price').focus(); return; }
+  if (!menus[selectedCaf]) menus[selectedCaf] = [];
   menus[selectedCaf].push({ id: nextId++, name, price, available: true });
   lastUpdated[selectedCaf] = Date.now();
   saveLastUpdated();
