@@ -229,17 +229,22 @@ document.getElementById('retry-btn').addEventListener('click', function () {
 
 /* ─── Sign‑out (only for special tokens) ─────────────────────────────────── */
 document.getElementById('logout-btn').addEventListener('click', function () {
+  // Clear all login data
   localStorage.removeItem('current_token');
   localStorage.removeItem('selected_caf');
+
+  // Hide app, show gate immediately
   document.getElementById('app').style.display = 'none';
+  document.getElementById('menu-area').innerHTML = '';
   document.getElementById('gate').style.display = 'flex';
-  document.getElementById('gate-denied').style.display = 'none';
   document.getElementById('gate-normal').style.display = '';
+  document.getElementById('gate-denied').style.display = 'none';
   tokenInput.value = '';
   selectedCaf = null;
   isAdmin = false;
-  document.getElementById('menu-area').innerHTML = '';
   updateModeBtn();
+
+  // Hide the sign‑out button itself
   this.style.display = 'none';
 });
 
