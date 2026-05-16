@@ -220,6 +220,12 @@ async function tryEnter() {
 }
 
 document.getElementById('retry-btn').addEventListener('click', function () {
+  // If this was a revoked session, clear everything now
+  if (localStorage.getItem('revoked_session') === 'true') {
+    localStorage.removeItem('current_token');
+    localStorage.removeItem('selected_caf');
+    localStorage.removeItem('revoked_session');
+  }
   document.getElementById('gate-denied').style.display = 'none';
   document.getElementById('gate-normal').style.display = '';
   tokenInput.value = '';
@@ -230,6 +236,7 @@ document.getElementById('retry-btn').addEventListener('click', function () {
 document.getElementById('logout-btn').addEventListener('click', function () {
   localStorage.removeItem('current_token');
   localStorage.removeItem('selected_caf');
+  localStorage.removeItem('revoked_session');
   document.getElementById('app').style.display = 'none';
   document.getElementById('menu-area').innerHTML = '';
   document.getElementById('gate').style.display = 'flex';
@@ -280,27 +287,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedToken = localStorage.getItem('current_token');
   if (!savedToken || !VALID_TOKENS[savedToken]) return;
 
-  try {
-    const { data } = await supabase
-      .from('tokens')
-      .select('revoked')
-      .eq('token', savedToken)
-      .maybeSingle();
+  // Skip validation for special tokens (they never go into Supabase)
+  if (!VALID_TOKENS[savedToken].special) {
+    try {
+      const { data } = await supabase
+        .from('tokens')
+        .select('revoked')
+        .eq('token', savedToken)
+        .maybeSingle();
 
-    if (!data || data.revoked === true) {
-      localStorage.removeItem('current_token');
-      localStorage.removeItem('selected_caf');
-      document.getElementById('gate').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.querySelector('#gate-denied p').textContent =
-        'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
-      document.getElementById('retry-btn').style.display = '';
-      return;
+      if (!data || data.revoked === true) {
+        // Show revoked gate, DON'T clear token yet
+        document.getElementById('gate').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('gate-normal').style.display = 'none';
+        document.getElementById('gate-denied').style.display = '';
+        document.querySelector('#gate-denied p').textContent =
+          'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
+        document.getElementById('retry-btn').style.display = '';
+        localStorage.setItem('revoked_session', 'true');
+        return;
+      }
+    } catch (e) {
+      console.warn('Online validation failed, allowing offline access');
     }
-  } catch (e) {
-    console.warn('Online validation failed, allowing offline access');
   }
 
   const user = VALID_TOKENS[savedToken];
@@ -341,16 +351,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderCafGrid();
-  
 
-    // Restore last selected cafeteria or default to first one
+  // Restore last selected cafeteria or default to first one
   const lastCaf = localStorage.getItem('selected_caf');
   if (lastCaf && menus[lastCaf]) {
     selectedCaf = +lastCaf;
     renderCafGrid();
     renderMenu(selectedCaf);
   } else if (CAFETERIAS.length > 0 && menus[CAFETERIAS[0].id]) {
-    // Fallback: select the first cafeteria
     selectedCaf = CAFETERIAS[0].id;
     renderCafGrid();
     renderMenu(selectedCaf);
@@ -643,13 +651,13 @@ function timeAgo(ts) {
 
 /* ─── Periodic token re‑validation ───────────────────────────────────────── */
 async function validateSession() {
-   // Don't run if gate is already showing (user not logged in)
+  // Don't run if gate is already showing (user not logged in)
   if (document.getElementById('gate').style.display !== 'none') return;
   
   const token = localStorage.getItem('current_token');
   if (!token) return;
 
-  // Skip re‑validation for special tokens (they never get inserted into Supabase)
+  // Skip re‑validation for special tokens
   if (VALID_TOKENS[token] && VALID_TOKENS[token].special) return;
   
   try {
@@ -660,8 +668,6 @@ async function validateSession() {
       .maybeSingle();
 
     if (!data || data.revoked === true) {
-      localStorage.removeItem('current_token');
-      localStorage.removeItem('selected_caf');
       document.getElementById('app').style.display = 'none';
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('gate-normal').style.display = 'none';
