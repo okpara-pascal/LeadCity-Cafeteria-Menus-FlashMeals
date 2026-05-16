@@ -410,13 +410,14 @@ html.logged-in #app {
   .price-val { font-weight: 500; }
  
   .status-pill {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 11px;
     padding: 3px 10px;
     border-radius: 20px;
-    position: relative;
+    z-index: 0;
   }
   .status-pill.avail   { background: var(--success-bg); color: var(--success-text); }
   .status-pill.unavail { background: var(--danger-bg); color: var(--danger-text); }
