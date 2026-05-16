@@ -93,10 +93,9 @@ try {
   if (savedTimes) Object.assign(lastUpdated, JSON.parse(savedTimes));
 } catch(e) {}
 
-/* ─── Failsafe: Ensure gate always shows when revoked_session is set ──────── */
+/* ─── Failsafe: Always show gate when revoked_session is set ──────────────── */
 (function() {
   if (localStorage.getItem('revoked_session') === 'true') {
-    // Immediately hide app and show gate before any other code runs
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
@@ -156,6 +155,7 @@ async function tryEnter() {
     return;
   }
 
+  // 1. Single‑use enforcement for normal tokens via Supabase
   if (!user.special) {
     try {
       const { data: existing } = await supabase
@@ -204,6 +204,8 @@ async function tryEnter() {
   }
 
   await new Promise(resolve => setTimeout(resolve, 1200));
+
+  // 2. Load shared menus from Supabase
   menus = await loadMenusFromServer();
 
   let maxId = 0;
@@ -220,6 +222,7 @@ async function tryEnter() {
   currentUser = user;
   localStorage.setItem('current_token', val);
 
+  // 3. Sign‑out button visible only for special tokens
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.style.display = user.special ? '' : 'none';
@@ -306,6 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
+  // 4. Mid‑session revocation check (instant on refresh, periodic via timer)
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -344,6 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Instant load from cache for zero‑flash experience
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
@@ -393,6 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMenu(selectedCaf);
   }
 
+  // Background sync with Supabase (menus)
   try {
     const freshMenus = await loadMenusFromServer();
     if (freshMenus && typeof freshMenus === 'object') {
@@ -412,6 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Background menu update failed, using cached data');
   }
 
+  // 5. Timestamps (per‑cafeteria "Last updated X min ago")
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
