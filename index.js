@@ -164,6 +164,15 @@ async function tryEnter() {
         btn.classList.remove('loading');
         btn.textContent = 'Access menus';
         return;
+          } else {
+          // Token exists and is not revoked → already used
+          document.getElementById('gate-normal').style.display = 'none';
+          document.getElementById('gate-denied').style.display = '';
+          document.querySelector('#gate-denied p').textContent =
+            'This token has already been claimed. Each token can only be used once.';
+          btn.classList.remove('loading');
+          btn.textContent = 'Access menus';
+          return;
       }
       }
 
@@ -688,7 +697,7 @@ if (!user.special)() {
       document.getElementById('gate-normal').style.display = 'none';
       document.getElementById('gate-denied').style.display = '';
       document.querySelector('#gate-denied p').textContent =
-        'Access token for this device has been deleted from the server. Please contact FlashMeals for a new access token.';
+        'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
       document.getElementById('retry-btn').style.display = '';
       currentUser = null;
       isAdmin = false;
