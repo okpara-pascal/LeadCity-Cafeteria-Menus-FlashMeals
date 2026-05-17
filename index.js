@@ -6,12 +6,13 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ─── Configuration (tokens) ────────────────────────────────────────────── */
 const VALID_TOKENS = {
-  'CAMP-2024-ALFA': { name: 'Student',   role: 'student' },
+  'STUD-2026-LEAD': { name: 'Student',   role: 'student' },
   'CAMP-2024-BETA': { name: 'Student',    role: 'student' },
   'CAMP-2024-GAMA': { name: 'Student',   role: 'student' },
   'CAMP-2024-DELT': { name: 'Student',   role: 'student' },
   'CAMP-2024-EPSL': { name: 'Student', role: 'student' },
   'ADMI-9999-ROOT': { name: 'Administrator',     role: 'admin'   },
+  /*Unique Specialized Access Tokens*/
   'DEVL-1234-ABCD': { name: 'Developer',   role: 'admin',   special: true },
   'STUD-5678-EFGH': { name: 'Test Student', role: 'student', special: true },
 };
@@ -110,8 +111,8 @@ try {
 function formatToken(val) {
   val = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
   let out = '';
-  for (let i = 0; i < val.length && i < 12; i++) {
-    if (i === 4 || i === 8) out += '-';
+  for (let i = 0; i < val.length && i < 19; i++) {
+    if (i === 4 || i === 8 || i === 12 || i === 17) out += '-';
     out += val[i];
   }
   return out;
