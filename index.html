@@ -11,20 +11,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="flashmeals.png">
 
-<script>
-  (function(){
-    const token = localStorage.getItem('current_token');
-    const valid = {
-      'CAMP-2024-ALFA':1,'CAMP-2024-BETA':1,'CAMP-2024-GAMA':1,
-      'CAMP-2024-DELT':1,'CAMP-2024-EPSL':1,'ADMI-9999-ROOT':1,
-      'DEVL-1234-ABCD':1,'STUD-5678-EFGH':1
-    };
-    if (token && valid[token]) {
-      document.getElementById('gate').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-    }
-  })();
-</script>
+
 
 </head>
 <body>
@@ -100,5 +87,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="index.js"></script>
+
+  <script>
+  (function(){
+    const token = localStorage.getItem('current_token');
+    const valid = {
+      'CAMP-2024-ALFA':1,'CAMP-2024-BETA':1,'CAMP-2024-GAMA':1,
+      'CAMP-2024-DELT':1,'CAMP-2024-EPSL':1,'ADMI-9999-ROOT':1,
+      'DEVL-1234-ABCD':1,'STUD-5678-EFGH':1
+    };
+    if (token && valid[token]) {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+    }
+  })();
+</script>
+  
 </body>
 </html>
