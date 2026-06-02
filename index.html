@@ -10,20 +10,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="flashmeals.png">
-<script>
-  (function(){
-    const token = localStorage.getItem('current_token');
-    const valid = {
-      'CAMP-2024-ALFA':1,'CAMP-2024-BETA':1,'CAMP-2024-GAMA':1,
-      'CAMP-2024-DELT':1,'CAMP-2024-EPSL':1,'ADMI-9999-ROOT':1,
-      'DEVL-1234-ABCD':1,'STUD-5678-EFGH':1
-    };
-    if (token && valid[token]) {
-      document.getElementById('gate').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-    }
-  })();
-</script>
 
 
 </head>
@@ -100,6 +86,20 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="index.js"></script>
+  
+   <script>
+    (function(){
+      if (localStorage.getItem('revoked_session') === 'true') return;
+      const token = localStorage.getItem('current_token');
+      if (!token) return;
+
+      const cachedMenus = localStorage.getItem('campus_menus');
+      if (!cachedMenus) return;
+
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+    })();
+  </script>
   
 </body>
 </html>
