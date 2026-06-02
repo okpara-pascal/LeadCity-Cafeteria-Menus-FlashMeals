@@ -354,6 +354,7 @@ async function tryEnter() {
   } else {
     renderCafGrid();
   }
+}
 
 document.getElementById('retry-btn').addEventListener('click', function () {
   if (localStorage.getItem('revoked_session') === 'true') {
