@@ -110,17 +110,16 @@ const VALID_TOKENS = {
 'STUD-2026-LEAD-101': { name: 'Student', role: 'student' },
 
   
-  /*Runners Access Tokens*/
-'ADMI-FMEAL-001': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-002': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-003': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-004': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-005': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-006': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-007': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-008': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-009': { name: 'Administrator', role: 'admin' },
-'ADMI-FMEAL-010': { name: 'Administrator', role: 'admin' },
+  /*Your Choice Kitchen Admins*/
+'ADMI-FMEAL-001': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-002': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-003': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-004': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-005': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-006': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-007': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-008': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-FMEAL-009': { name: 'Administrator', role: 'admin', caf: 8 },
 
   
   /*My Unique Specialized Access Tokens*/
@@ -345,8 +344,16 @@ async function tryEnter() {
   document.getElementById('logged-as').textContent = user.name;
   btn.classList.remove('loading');
   btn.textContent = 'Access menus';
-  renderCafGrid();
-}
+
+  // Auto‑select the worker's cafeteria if their token has a caf field
+  if (user.caf && menus[user.caf]) {
+    selectedCaf = user.caf;
+    localStorage.setItem('selected_caf', user.caf);
+    renderCafGrid();
+    renderMenu(user.caf);
+  } else {
+    renderCafGrid();
+  }
 
 document.getElementById('retry-btn').addEventListener('click', function () {
   if (localStorage.getItem('revoked_session') === 'true') {
@@ -496,11 +503,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-  renderCafGrid();
+    renderCafGrid();
 
-  const lastCaf = localStorage.getItem('selected_caf');
+  // Check for the worker's assigned cafeteria first, then fall back to last selected
+  const savedCaf = localStorage.getItem('selected_caf');
+  const lastCaf = (user.caf) ? user.caf : savedCaf;
+  
   if (lastCaf && menus[lastCaf] && Array.isArray(menus[lastCaf])) {
     selectedCaf = +lastCaf;
+    localStorage.setItem('selected_caf', lastCaf);
     renderCafGrid();
     renderMenu(selectedCaf);
   } else if (CAFETERIAS.length > 0) {
