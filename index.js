@@ -111,15 +111,15 @@ const VALID_TOKENS = {
 
   
   /*Your Choice Kitchen Admins*/
-'ADMI-FMEAL-001': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-002': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-003': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-004': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-005': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-006': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-007': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-008': { name: 'Administrator', role: 'admin', caf: 8 },
-'ADMI-FMEAL-009': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-001': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-002': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-003': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-004': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-005': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-006': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-007': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-008': { name: 'Administrator', role: 'admin', caf: 8 },
+'ADMI-MEAL-009': { name: 'Administrator', role: 'admin', caf: 8 },
 
   
   /*My Unique Specialized Access Tokens*/
