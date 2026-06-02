@@ -124,7 +124,7 @@ const VALID_TOKENS = {
 
   
   /*My Unique Specialized Access Tokens*/
-'DEVL-1234-ABCD': { name: 'Developer',   role: 'admin',   special: true },
+'DEVL-1234-5678': { name: 'Developer',   role: 'admin',   special: true },
 'STUD-5678-EFGH': { name: 'Test Student', role: 'student', special: true },
 };
 
