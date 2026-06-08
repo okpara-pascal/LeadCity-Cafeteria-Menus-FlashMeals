@@ -557,6 +557,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.warn('Could not load timestamps');
   }
+
+  // Refresh button
+  const refreshBtn = document.getElementById('refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      location.reload();
+    });
+  }
 });
 
 /* ─── Admin mode toggle ──────────────────────────────────────────────────── */
@@ -896,43 +904,4 @@ async function validateSession() {
 
 setInterval(validateSession, 30000);
 
-/* ─── Floating refresh button ────────────────────────────────────────────── */
-document.getElementById('refresh-btn').addEventListener('click', function () {
-  // Animate the button
-  this.style.transform = 'rotate(180deg)';
-  
-  // Reload menus from Supabase
-  loadMenusFromServer().then(freshMenus => {
-    if (freshMenus && typeof freshMenus === 'object') {
-      menus = freshMenus;
-      CAFETERIAS.forEach(c => {
-        if (!menus[c.id] || !Array.isArray(menus[c.id])) {
-          menus[c.id] = [];
-        }
-      });
-      localStorage.setItem('campus_menus', JSON.stringify(menus));
-      if (selectedCaf !== null) {
-        renderCafGrid();
-        renderMenu(selectedCaf);
-      }
-    }
-    // Reset button rotation
-    this.style.transform = 'rotate(0deg)';
-  }).catch(() => {
-    this.style.transform = 'rotate(0deg)';
-    // Refresh the page as fallback
-    location.reload();
-  });
-});
-
- /* ─── Floating refresh button ────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function () {
-  const refreshBtn = document.getElementById('refresh-btn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', function () {
-      location.reload();
-    });
-  }
-});
-  
 })();
