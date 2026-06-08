@@ -668,4 +668,240 @@ function renderMenu(cafId) {
         <td class="col-status">
           <span class="status-pill ${item.available ? 'avail' : 'unavail'}">
             <span class="dot" style="background:${item.available ? '#3B6D11' : '#888780'}"></span>
-            ${item.available ? '
+            ${item.available ? 'Available' : 'Unavailable'}
+          </span>
+        </td>
+        <td class="col-action"></td>
+      </tr>`;
+    }
+  }).join('');
+ 
+  if (!rows) {
+    rows = `<tr><td colspan="4">
+      <div class="empty-state">
+        <i class="ti ti-inbox" aria-hidden="true"></i>
+        No items yet${isAdmin ? ' — add one above' : ''}
+      </div>
+    </td></tr>`;
+  }
+ 
+  area.innerHTML = `
+    <div class="menu-panel">
+      <div class="menu-header">
+        <div class="menu-header-left">
+          <i class="ti ${caf.icon}" style="font-size:20px;color:var(--accent)" aria-hidden="true"></i>
+          <div>
+            <div class="menu-title">${caf.name}</div>
+            <div class="menu-count">${items.length} items &middot; ${items.filter(i=>i.available).length} available</div>
+            ${lastStr}
+          </div>
+        </div>
+        ${isAdmin ? `<button class="add-btn" id="open-add">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add item
+        </button>` : ''}
+      </div>
+      <table class="menu-table" aria-label="${caf.name} menu">
+        <thead>
+          <tr>
+            <th class="col-name">Item</th>
+            <th class="col-price">Price</th>
+            <th class="col-status">Status</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+ 
+  if (isAdmin) {
+    area.querySelectorAll('.avail-toggle').forEach(el => {
+      el.addEventListener('change', function () {
+        const item = findItem(+this.dataset.cid, +this.dataset.iid);
+        if (item) {
+          item.available = this.checked;
+          const lbl = this.closest('td').querySelector('.avail-label');
+          if (lbl) lbl.textContent = item.available ? 'Available' : 'Unavailable';
+          lastUpdated[+this.dataset.cid] = Date.now();
+          saveLastUpdated();
+          saveMenuToServer(+this.dataset.cid, menus[+this.dataset.cid]);
+          renderCafGrid();
+        }
+      });
+    });
+ 
+    area.querySelectorAll('.del-btn').forEach(el => {
+      el.addEventListener('click', function () {
+        const cid = +this.dataset.cid, iid = +this.dataset.iid;
+        menus[cid] = menus[cid].filter(i => i.id !== iid);
+        lastUpdated[cid] = Date.now();
+        saveLastUpdated();
+        saveMenuToServer(cid, menus[cid]);
+        renderMenu(cid);
+        renderCafGrid();
+      });
+    });
+ 
+    area.querySelectorAll('.edit-name').forEach(el => {
+      el.addEventListener('change', function () {
+        const item = findItem(+this.dataset.cid, +this.dataset.iid);
+        if (item) {
+          item.name = this.value;
+          lastUpdated[+this.dataset.cid] = Date.now();
+          saveLastUpdated();
+          saveMenuToServer(+this.dataset.cid, menus[+this.dataset.cid]);
+        }
+      });
+    });
+ 
+    area.querySelectorAll('.edit-price').forEach(el => {
+      el.addEventListener('change', function () {
+        const item = findItem(+this.dataset.cid, +this.dataset.iid);
+        if (item) {
+          item.price = Math.max(0, +this.value);
+          lastUpdated[+this.dataset.cid] = Date.now();
+          saveLastUpdated();
+          saveMenuToServer(+this.dataset.cid, menus[+this.dataset.cid]);
+        }
+      });
+    });
+ 
+    const openAdd = document.getElementById('open-add');
+    if (openAdd) {
+      openAdd.addEventListener('click', () => {
+        document.getElementById('new-name').value  = '';
+        document.getElementById('new-price').value = '';
+        document.getElementById('add-modal').style.display = '';
+        document.getElementById('new-name').focus();
+      });
+    }
+  }
+}
+ 
+/* ─── Modal ──────────────────────────────────────────────────────────────── */
+document.getElementById('cancel-add').addEventListener('click', closeModal);
+document.getElementById('add-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeModal();
+});
+ 
+function closeModal() {
+  document.getElementById('add-modal').style.display = 'none';
+}
+ 
+document.getElementById('confirm-add').addEventListener('click', () => {
+  const name  = document.getElementById('new-name').value.trim();
+  const price = +document.getElementById('new-price').value;
+  if (!name)  { document.getElementById('new-name').focus();  return; }
+  if (!price) { document.getElementById('new-price').focus(); return; }
+  if (!menus[selectedCaf]) menus[selectedCaf] = [];
+  menus[selectedCaf].push({ id: nextId++, name, price, available: true });
+  lastUpdated[selectedCaf] = Date.now();
+  saveLastUpdated();
+  saveMenuToServer(selectedCaf, menus[selectedCaf]);
+  closeModal();
+  renderMenu(selectedCaf);
+  renderCafGrid();
+});
+ 
+document.getElementById('new-price').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('confirm-add').click();
+});
+ 
+/* ─── Helpers ────────────────────────────────────────────────────────────── */
+function findItem(cafId, itemId) {
+  return (menus[cafId] || []).find(i => i.id === itemId) || null;
+}
+ 
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function saveLastUpdated() {
+  localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
+  if (typeof supabase !== 'undefined') {
+    const token = localStorage.getItem('current_token') || 'unknown';
+    Object.entries(lastUpdated).forEach(([cafId, ts]) => {
+      supabase.from('last_updated').upsert({
+        caf_id: parseInt(cafId),
+        updated_at: new Date(ts).toISOString(),
+        updated_by: token
+      }).then(({ error }) => {
+        if (error) console.warn('Failed to sync timestamp', error);
+      });
+    });
+  }
+}
+
+function saveMenus() {
+  localStorage.setItem('campus_menus', JSON.stringify(menus));
+}
+  
+function timeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr ago`;
+  const days = Math.floor(hr / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+/* ─── Periodic token re‑validation ───────────────────────────────────────── */
+async function validateSession() {
+  if (document.getElementById('gate').style.display !== 'none') return;
+  
+  const token = localStorage.getItem('current_token');
+  if (!token) return;
+
+  if (VALID_TOKENS[token] && VALID_TOKENS[token].special) return;
+  
+  try {
+    const { data } = await supabase
+      .from('tokens')
+      .select('revoked')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (!data) {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
+      document.getElementById('retry-btn').style.display = '';
+      localStorage.setItem('revoked_session', 'true');
+      currentUser = null;
+      isAdmin = false;
+      selectedCaf = null;
+      return;
+    }
+
+    if (data.revoked === true) {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('gate').style.display = 'flex';
+      document.getElementById('gate-normal').style.display = 'none';
+      document.getElementById('gate-denied').style.display = '';
+      document.querySelector('#gate-denied p').textContent =
+        'Access token for this device has been revoked from the server. Please contact FlashMeals for a new access token.';
+      document.getElementById('retry-btn').style.display = '';
+      localStorage.setItem('revoked_session', 'true');
+      currentUser = null;
+      isAdmin = false;
+      selectedCaf = null;
+    }
+  } catch (e) {
+    console.warn('Re‑validation failed (offline?), skipping.');
+  }
+}
+
+setInterval(validateSession, 30000);
+
+})();
