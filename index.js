@@ -925,9 +925,14 @@ document.getElementById('refresh-btn').addEventListener('click', function () {
   });
 });
 
-  /* ─── Floating refresh button ────────────────────────────────────────────── */
-document.getElementById('refresh-btn').addEventListener('click', function () {
-  location.reload();
+ /* ─── Floating refresh button ────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function () {
+  const refreshBtn = document.getElementById('refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      location.reload();
+    });
+  }
 });
   
 })();
