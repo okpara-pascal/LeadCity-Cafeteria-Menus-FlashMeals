@@ -924,4 +924,10 @@ document.getElementById('refresh-btn').addEventListener('click', function () {
     location.reload();
   });
 });
+
+  /* ─── Floating refresh button ────────────────────────────────────────────── */
+document.getElementById('refresh-btn').addEventListener('click', function () {
+  location.reload();
+});
+  
 })();
