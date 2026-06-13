@@ -295,7 +295,7 @@ async function tryEnter() {
         }
       }
 
-      await supabase.from('tokens').insert({ token: val, revoked: false });
+      
     } catch (e) {
       console.warn('Supabase offline, using local check');
       if (localStorage.getItem('token_used_' + val) === 'true') {
@@ -947,18 +947,6 @@ document.getElementById('terms-agree').addEventListener('click', function () {
 });
 
 document.getElementById('terms-decline').addEventListener('click', function () {
-  // Sign them out
-  localStorage.removeItem('current_token');
-  localStorage.removeItem('selected_caf');
-  document.getElementById('terms-modal').style.display = 'none';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('gate-normal').style.display = '';
-  document.getElementById('gate-denied').style.display = 'none';
-  tokenInput.value = '';
-  selectedCaf = null;
-  isAdmin = false;
-  currentUser = null;
   alert('You must accept the Terms & Conditions to use this platform.');
 });
 
