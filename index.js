@@ -441,6 +441,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
+  // If student hasn't agreed to T&C yet, send them back to the gate
+  if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    localStorage.removeItem('current_token');
+    localStorage.removeItem('selected_caf');
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate-normal').style.display = '';
+    document.getElementById('gate-denied').style.display = 'none';
+    return;
+  }
+
   // 4. Mid‑session revocation check (instant on refresh, periodic via timer)
   if (!user.special) {
     try {
