@@ -295,7 +295,15 @@ async function tryEnter() {
         }
       }
 
-      await supabase.from('tokens').insert({ token: val, revoked: false });
+      async function finalizeTokenInsert(token) {
+  try {
+    await supabase.from('tokens').insert({ token: token, revoked: false });
+  } catch (e) {
+    console.warn('Failed to insert token into Supabase');
+  }
+  localStorage.setItem('token_used_' + token, 'true');
+}
+      
     } catch (e) {
       console.warn('Supabase offline, using local check');
       if (localStorage.getItem('token_used_' + val) === 'true') {
@@ -310,9 +318,7 @@ async function tryEnter() {
     }
   }
 
-  if (!user.special) {
-    localStorage.setItem('token_used_' + val, 'true');
-  }
+  
 
   await new Promise(resolve => setTimeout(resolve, 1200));
 
@@ -355,8 +361,11 @@ async function tryEnter() {
   }
 
   // Show Terms & Conditions for first‑time students only (not admins, not special tokens)
-  if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
     document.getElementById('terms-modal').style.display = '';
+  } else if (!user.special && !localStorage.getItem('token_used_' + val)) {
+    // Returning student or non‑student — finalize token now
+    finalizeTokenInsert(val);
   }
 }
 document.getElementById('retry-btn').addEventListener('click', function () {
@@ -941,24 +950,19 @@ async function validateSession() {
 setInterval(validateSession, 30000);
 
 /* ─── Terms & Conditions handlers ────────────────────────────────────────── */
-document.getElementById('terms-agree').addEventListener('click', function () {
+document.getElementById('terms-agree').addEventListener('click', async function () {
   localStorage.setItem('terms_agreed', 'true');
   document.getElementById('terms-modal').style.display = 'none';
+  
+  // Now finalize the token in Supabase
+  const token = localStorage.getItem('current_token');
+  if (token && currentUser && !currentUser.special) {
+    await finalizeTokenInsert(token);
+  }
 });
 
 document.getElementById('terms-decline').addEventListener('click', function () {
-  // Sign them out
-  localStorage.removeItem('current_token');
-  localStorage.removeItem('selected_caf');
-  document.getElementById('terms-modal').style.display = 'none';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('gate-normal').style.display = '';
-  document.getElementById('gate-denied').style.display = 'none';
-  tokenInput.value = '';
-  selectedCaf = null;
-  isAdmin = false;
-  currentUser = null;
+  // Don't remove the token or sign out — just show alert and keep T&C open
   alert('You must accept the Terms & Conditions to use this platform.');
 });
 
