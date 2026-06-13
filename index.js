@@ -441,10 +441,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
-  // If student hasn't agreed to T&C yet, send them back to the gate
+  // ══════════ T&C CHECK — MUST RUN FIRST ══════════
   if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    // Clear any leftover revoked_session flag
+    localStorage.removeItem('revoked_session');
     localStorage.removeItem('current_token');
     localStorage.removeItem('selected_caf');
+    // Show normal gate
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate-normal').style.display = '';
@@ -452,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 4. Mid‑session revocation check (instant on refresh, periodic via timer)
+  // ══════════ REVOCATION CHECK ══════════
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -463,19 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-      if (!data) {
-        document.getElementById('gate').style.display = 'flex';
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('gate-normal').style.display = 'none';
-        document.getElementById('gate-denied').style.display = '';
-        document.querySelector('#gate-denied p').textContent =
-          'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
-        document.getElementById('retry-btn').style.display = '';
-        localStorage.setItem('revoked_session', 'true');
-        return;
-      }
-
-      if (data.revoked === true) {
+      if (!data || data.revoked === true) {
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -491,23 +482,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Instant load from cache for zero‑flash experience
+  // ══════════ NORMAL LOAD ══════════
+  // (rest of your existing DOMContentLoaded code stays here)
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
   } catch (e) {
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
-
-  if (!menus || typeof menus !== 'object') {
-    menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
-  }
-
-  CAFETERIAS.forEach(c => {
-    if (!menus[c.id] || !Array.isArray(menus[c.id])) {
-      menus[c.id] = [];
-    }
-  });
+  // ... keep everything else the same ...
+});
 
   let maxId = 0;
   Object.values(menus).forEach(arr => {
