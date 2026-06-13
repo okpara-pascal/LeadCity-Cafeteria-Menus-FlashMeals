@@ -294,16 +294,7 @@ async function tryEnter() {
           return;
         }
       }
-
-      async function finalizeTokenInsert(token) {
-  try {
-    await supabase.from('tokens').insert({ token: token, revoked: false });
-  } catch (e) {
-    console.warn('Failed to insert token into Supabase');
-  }
-  localStorage.setItem('token_used_' + token, 'true');
-}
-      
+      // Token not in Supabase yet – DO NOT insert here. Wait for T&C agreement.
     } catch (e) {
       console.warn('Supabase offline, using local check');
       if (localStorage.getItem('token_used_' + val) === 'true') {
@@ -317,8 +308,6 @@ async function tryEnter() {
       }
     }
   }
-
-  
 
   await new Promise(resolve => setTimeout(resolve, 1200));
 
@@ -344,7 +333,7 @@ async function tryEnter() {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-    document.getElementById('gate').style.display = 'none';
+  document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
   btn.classList.remove('loading');
@@ -361,13 +350,14 @@ async function tryEnter() {
   }
 
   // Show Terms & Conditions for first‑time students only (not admins, not special tokens)
-    if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+  if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
     document.getElementById('terms-modal').style.display = '';
   } else if (!user.special && !localStorage.getItem('token_used_' + val)) {
-    // Returning student or non‑student — finalize token now
+    // Returning student or non‑student – finalize token now
     finalizeTokenInsert(val);
   }
 }
+
 document.getElementById('retry-btn').addEventListener('click', function () {
   if (localStorage.getItem('revoked_session') === 'true') {
     localStorage.removeItem('current_token');
@@ -399,6 +389,16 @@ document.getElementById('logout-btn').addEventListener('click', function () {
   document.getElementById('gate-normal').style.display = '';
   document.getElementById('gate-denied').style.display = 'none';
 });
+
+/* ─── Token finalization helper ──────────────────────────────────────────── */
+async function finalizeTokenInsert(token) {
+  try {
+    await supabase.from('tokens').insert({ token: token, revoked: false });
+  } catch (e) {
+    console.warn('Failed to insert token into Supabase');
+  }
+  localStorage.setItem('token_used_' + token, 'true');
+}
 
 /* ─── Menu loading from Supabase ─────────────────────────────────────────── */
 async function loadMenusFromServer() {
@@ -443,11 +443,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ══════════ T&C CHECK — MUST RUN FIRST ══════════
   if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
-    // Clear any leftover revoked_session flag
     localStorage.removeItem('revoked_session');
     localStorage.removeItem('current_token');
     localStorage.removeItem('selected_caf');
-    // Show normal gate
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate-normal').style.display = '';
@@ -466,7 +464,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-      if (!data || data.revoked === true) {
+      if (data && data.revoked === true) {
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -482,22 +480,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ══════════ NORMAL LOAD ══════════
-  // (rest of your existing DOMContentLoaded code stays here)
+  // Instant load from cache for zero‑flash experience
   try {
     const saved = localStorage.getItem('campus_menus');
     menus = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_MENUS));
   } catch (e) {
     menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
   }
-  // ... keep everything else the same ...
-});
+
+  if (!menus || typeof menus !== 'object') {
+    menus = JSON.parse(JSON.stringify(DEFAULT_MENUS));
+  }
+
+  CAFETERIAS.forEach(c => {
+    if (!menus[c.id] || !Array.isArray(menus[c.id])) {
+      menus[c.id] = [];
+    }
+  });
 
   let maxId = 0;
   Object.values(menus).forEach(arr => {
     if (Array.isArray(arr)) {
       arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
-      arr.sort((a, b) => a.id - b.id);
     }
   });
   nextId = maxId + 1;
@@ -511,9 +515,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-    renderCafGrid();
+  renderCafGrid();
 
-  // Check for the worker's assigned cafeteria first, then fall back to last selected
   const savedCaf = localStorage.getItem('selected_caf');
   const lastCaf = (user.caf) ? user.caf : savedCaf;
   
@@ -529,7 +532,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMenu(selectedCaf);
   }
 
-  // Background sync with Supabase (menus)
   try {
     const freshMenus = await loadMenusFromServer();
     if (freshMenus && typeof freshMenus === 'object') {
@@ -549,7 +551,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Background menu update failed, using cached data');
   }
 
-  // 5. Timestamps (per‑cafeteria "Last updated X min ago")
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
@@ -565,7 +566,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Could not load timestamps');
   }
 
-  // Refresh button
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', function () {
@@ -642,7 +642,7 @@ function renderMenu(cafId) {
     : '';
  
   let rows = items.map(item => {
-        if (isAdmin) {
+    if (isAdmin) {
       return `<tr>
         <td class="col-drag" style="cursor:grab;text-align:center;padding-top:14px">
           <i class="ti ti-grip-vertical" style="color:var(--text-secondary);font-size:16px"></i>
@@ -687,7 +687,7 @@ function renderMenu(cafId) {
   }).join('');
  
   if (!rows) {
-    rows = `<tr><td colspan="4">
+    rows = `<tr><td colspan="5">
       <div class="empty-state">
         <i class="ti ti-inbox" aria-hidden="true"></i>
         No items yet${isAdmin ? ' — add one above' : ''}
@@ -710,7 +710,7 @@ function renderMenu(cafId) {
           <i class="ti ti-plus" aria-hidden="true"></i> Add item
         </button>` : ''}
       </div>
-            <table class="menu-table" aria-label="${caf.name} menu">
+      <table class="menu-table" aria-label="${caf.name} menu">
         <thead>
           <tr>
             ${isAdmin ? '<th class="col-drag"></th>' : ''}
@@ -740,15 +740,13 @@ function renderMenu(cafId) {
       });
     });
 
-      // Enable drag‑and‑drop reordering (admin only)
-  if (isAdmin) {
+    // Enable drag‑and‑drop reordering (admin only)
     const tbody = area.querySelector('tbody');
-    if (tbody) {
+    if (tbody && typeof Sortable !== 'undefined') {
       new Sortable(tbody, {
-        handle: '.col-drag',   // only the grip icon triggers drag
+        handle: '.col-drag',
         animation: 150,
         onEnd: function () {
-          // Read the new order from the DOM
           const newOrder = [];
           tbody.querySelectorAll('tr').forEach(row => {
             const nameInput = row.querySelector('.edit-name');
@@ -758,7 +756,6 @@ function renderMenu(cafId) {
               if (item) newOrder.push(item);
             }
           });
-          // Update the menus array and save
           menus[cafId] = newOrder;
           lastUpdated[cafId] = Date.now();
           saveLastUpdated();
@@ -767,7 +764,6 @@ function renderMenu(cafId) {
         }
       });
     }
-  }
  
     area.querySelectorAll('.del-btn').forEach(el => {
       el.addEventListener('click', function () {
@@ -909,22 +905,7 @@ async function validateSession() {
       .eq('token', token)
       .maybeSingle();
 
-    if (!data) {
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('gate').style.display = 'flex';
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.querySelector('#gate-denied p').textContent =
-        'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
-      document.getElementById('retry-btn').style.display = '';
-      localStorage.setItem('revoked_session', 'true');
-      currentUser = null;
-      isAdmin = false;
-      selectedCaf = null;
-      return;
-    }
-
-    if (data.revoked === true) {
+    if (data && data.revoked === true) {
       document.getElementById('app').style.display = 'none';
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('gate-normal').style.display = 'none';
@@ -948,7 +929,6 @@ setInterval(validateSession, 30000);
 document.getElementById('terms-agree').addEventListener('click', async function () {
   localStorage.setItem('terms_agreed', 'true');
   
-  // Insert token into Supabase NOW (with retry)
   const token = localStorage.getItem('current_token');
   if (token && currentUser && !currentUser.special) {
     try {
@@ -969,7 +949,6 @@ document.getElementById('terms-agree').addEventListener('click', async function 
 });
 
 document.getElementById('terms-decline').addEventListener('click', function () {
-  // Don't remove the token or sign out — just show alert and keep T&C open
   alert('You must accept the Terms & Conditions to use this platform.');
 });
 
