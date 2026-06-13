@@ -294,8 +294,7 @@ async function tryEnter() {
           return;
         }
       }
-
-      await supabase.from('tokens').insert({ token: val, revoked: false });
+      // DO NOT insert token here – wait for T&C agreement for students
     } catch (e) {
       console.warn('Supabase offline, using local check');
       if (localStorage.getItem('token_used_' + val) === 'true') {
@@ -308,10 +307,6 @@ async function tryEnter() {
         return;
       }
     }
-  }
-
-  if (!user.special) {
-    localStorage.setItem('token_used_' + val, 'true');
   }
 
   await new Promise(resolve => setTimeout(resolve, 1200));
@@ -338,27 +333,39 @@ async function tryEnter() {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-    document.getElementById('gate').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('logged-as').textContent = user.name;
-  btn.classList.remove('loading');
-  btn.textContent = 'Access menus';
-
-  // Auto‑select the worker's cafeteria if their token has a caf field
-  if (user.caf && menus[user.caf]) {
-    selectedCaf = user.caf;
-    localStorage.setItem('selected_caf', user.caf);
-    renderCafGrid();
-    renderMenu(user.caf);
-  } else {
-    renderCafGrid();
-  }
-
-  // Show Terms & Conditions for first‑time students only (not admins, not special tokens)
+  // Show Terms & Conditions for first‑time students only
   if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    // Hide the app so menus aren't visible behind the modal
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('gate-normal').style.display = 'none';
+    document.getElementById('gate-denied').style.display = 'none';
     document.getElementById('terms-modal').style.display = '';
+  } else {
+    // Normal login – show app
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('logged-as').textContent = user.name;
+    btn.classList.remove('loading');
+    btn.textContent = 'Access menus';
+
+    // Auto‑select the worker's cafeteria if their token has a caf field
+    if (user.caf && menus[user.caf]) {
+      selectedCaf = user.caf;
+      localStorage.setItem('selected_caf', user.caf);
+      renderCafGrid();
+      renderMenu(user.caf);
+    } else {
+      renderCafGrid();
+    }
+
+    // Finalize token for non‑T&C users
+    if (!user.special && !localStorage.getItem('token_used_' + val)) {
+      finalizeTokenInsert(val);
+    }
   }
 }
+
 document.getElementById('retry-btn').addEventListener('click', function () {
   if (localStorage.getItem('revoked_session') === 'true') {
     localStorage.removeItem('current_token');
@@ -370,6 +377,16 @@ document.getElementById('retry-btn').addEventListener('click', function () {
   tokenInput.value = '';
   gateErr.textContent = '';
 });
+
+/* ─── Token finalization helper ──────────────────────────────────────────── */
+async function finalizeTokenInsert(token) {
+  try {
+    await supabase.from('tokens').insert({ token: token, revoked: false });
+  } catch (e) {
+    console.warn('Failed to insert token into Supabase');
+  }
+  localStorage.setItem('token_used_' + token, 'true');
+}
 
 /* ─── Sign‑out ───────────────────────────────────────────────────────────── */
 document.getElementById('logout-btn').addEventListener('click', function () {
@@ -432,7 +449,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = VALID_TOKENS[savedToken];
   currentUser = user;
 
-  // 4. Mid‑session revocation check (instant on refresh, periodic via timer)
+  // ══════════ T&C CHECK — MUST RUN FIRST ══════════
+  if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    localStorage.removeItem('revoked_session');
+    localStorage.removeItem('current_token');
+    localStorage.removeItem('selected_caf');
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate-normal').style.display = '';
+    document.getElementById('gate-denied').style.display = 'none';
+    return;
+  }
+
+  // ══════════ REVOCATION CHECK ══════════
   if (!user.special) {
     try {
       const { data, error } = await supabase
@@ -443,19 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (error) throw error;
 
-      if (!data) {
-        document.getElementById('gate').style.display = 'flex';
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('gate-normal').style.display = 'none';
-        document.getElementById('gate-denied').style.display = '';
-        document.querySelector('#gate-denied p').textContent =
-          'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
-        document.getElementById('retry-btn').style.display = '';
-        localStorage.setItem('revoked_session', 'true');
-        return;
-      }
-
-      if (data.revoked === true) {
+      if (data && data.revoked === true) {
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
@@ -493,7 +510,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   Object.values(menus).forEach(arr => {
     if (Array.isArray(arr)) {
       arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
-      arr.sort((a, b) => a.id - b.id);
     }
   });
   nextId = maxId + 1;
@@ -507,9 +523,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-    renderCafGrid();
+  renderCafGrid();
 
-  // Check for the worker's assigned cafeteria first, then fall back to last selected
   const savedCaf = localStorage.getItem('selected_caf');
   const lastCaf = (user.caf) ? user.caf : savedCaf;
   
@@ -525,7 +540,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMenu(selectedCaf);
   }
 
-  // Background sync with Supabase (menus)
   try {
     const freshMenus = await loadMenusFromServer();
     if (freshMenus && typeof freshMenus === 'object') {
@@ -545,7 +559,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Background menu update failed, using cached data');
   }
 
-  // 5. Timestamps (per‑cafeteria "Last updated X min ago")
   try {
     const { data: times } = await supabase.from('last_updated').select('*');
     if (times) {
@@ -561,7 +574,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Could not load timestamps');
   }
 
-  // Refresh button
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', function () {
@@ -638,7 +650,7 @@ function renderMenu(cafId) {
     : '';
  
   let rows = items.map(item => {
-        if (isAdmin) {
+    if (isAdmin) {
       return `<tr>
         <td class="col-drag" style="cursor:grab;text-align:center;padding-top:14px">
           <i class="ti ti-grip-vertical" style="color:var(--text-secondary);font-size:16px"></i>
@@ -683,7 +695,7 @@ function renderMenu(cafId) {
   }).join('');
  
   if (!rows) {
-    rows = `<tr><td colspan="4">
+    rows = `<tr><td colspan="5">
       <div class="empty-state">
         <i class="ti ti-inbox" aria-hidden="true"></i>
         No items yet${isAdmin ? ' — add one above' : ''}
@@ -706,7 +718,7 @@ function renderMenu(cafId) {
           <i class="ti ti-plus" aria-hidden="true"></i> Add item
         </button>` : ''}
       </div>
-            <table class="menu-table" aria-label="${caf.name} menu">
+      <table class="menu-table" aria-label="${caf.name} menu">
         <thead>
           <tr>
             ${isAdmin ? '<th class="col-drag"></th>' : ''}
@@ -736,15 +748,13 @@ function renderMenu(cafId) {
       });
     });
 
-      // Enable drag‑and‑drop reordering (admin only)
-  if (isAdmin) {
+    // Enable drag‑and‑drop reordering (admin only)
     const tbody = area.querySelector('tbody');
-    if (tbody) {
+    if (tbody && typeof Sortable !== 'undefined') {
       new Sortable(tbody, {
-        handle: '.col-drag',   // only the grip icon triggers drag
+        handle: '.col-drag',
         animation: 150,
         onEnd: function () {
-          // Read the new order from the DOM
           const newOrder = [];
           tbody.querySelectorAll('tr').forEach(row => {
             const nameInput = row.querySelector('.edit-name');
@@ -754,7 +764,6 @@ function renderMenu(cafId) {
               if (item) newOrder.push(item);
             }
           });
-          // Update the menus array and save
           menus[cafId] = newOrder;
           lastUpdated[cafId] = Date.now();
           saveLastUpdated();
@@ -763,7 +772,6 @@ function renderMenu(cafId) {
         }
       });
     }
-  }
  
     area.querySelectorAll('.del-btn').forEach(el => {
       el.addEventListener('click', function () {
@@ -905,22 +913,7 @@ async function validateSession() {
       .eq('token', token)
       .maybeSingle();
 
-    if (!data) {
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('gate').style.display = 'flex';
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.querySelector('#gate-denied p').textContent =
-        'Your access token has been mistakenly deleted from our server. Please try logging in again or contact FlashMeals for assistance.';
-      document.getElementById('retry-btn').style.display = '';
-      localStorage.setItem('revoked_session', 'true');
-      currentUser = null;
-      isAdmin = false;
-      selectedCaf = null;
-      return;
-    }
-
-    if (data.revoked === true) {
+    if (data && data.revoked === true) {
       document.getElementById('app').style.display = 'none';
       document.getElementById('gate').style.display = 'flex';
       document.getElementById('gate-normal').style.display = 'none';
@@ -941,24 +934,33 @@ async function validateSession() {
 setInterval(validateSession, 30000);
 
 /* ─── Terms & Conditions handlers ────────────────────────────────────────── */
-document.getElementById('terms-agree').addEventListener('click', function () {
+document.getElementById('terms-agree').addEventListener('click', async function () {
   localStorage.setItem('terms_agreed', 'true');
+  
+  const token = localStorage.getItem('current_token');
+  if (token && currentUser && !currentUser.special) {
+    try {
+      await supabase.from('tokens').insert({ token: token, revoked: false });
+      localStorage.setItem('token_used_' + token, 'true');
+    } catch (e) {
+      console.warn('Failed to insert token, retrying...');
+      try {
+        await supabase.from('tokens').insert({ token: token, revoked: false });
+        localStorage.setItem('token_used_' + token, 'true');
+      } catch (e2) {
+        console.warn('Retry failed');
+      }
+    }
+  }
+  
   document.getElementById('terms-modal').style.display = 'none';
+  // Show the app now that they've agreed
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('logged-as').textContent = currentUser ? currentUser.name : '';
 });
 
 document.getElementById('terms-decline').addEventListener('click', function () {
-  // Sign them out
-  localStorage.removeItem('current_token');
-  localStorage.removeItem('selected_caf');
-  document.getElementById('terms-modal').style.display = 'none';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('gate-normal').style.display = '';
-  document.getElementById('gate-denied').style.display = 'none';
-  tokenInput.value = '';
-  selectedCaf = null;
-  isAdmin = false;
-  currentUser = null;
   alert('You must accept the Terms & Conditions to use this platform.');
 });
 
