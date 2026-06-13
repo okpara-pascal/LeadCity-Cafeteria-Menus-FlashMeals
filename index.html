@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>LeadCity Cafeteria Menus | FlashMeals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -84,6 +84,36 @@
   </div>
 </div>
 
+<!-- ═══════════════ TERMS & CONDITIONS MODAL ═══════════════ -->
+<div class="modal-overlay" id="terms-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="terms-heading">
+  <div class="modal" style="max-width:420px;max-height:80vh;overflow-y:auto">
+    <h2 class="modal-title" id="terms-heading">Terms &amp; Conditions</h2>
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:1.25rem">
+      <p style="margin-bottom:12px">By using the LeadCity Campus Menus website, you acknowledge and agree to the following:</p>
+      
+      <p style="margin-bottom:8px"><strong>1. Real‑Time Data Limitations</strong><br>
+      Menu data is updated in real time by cafeteria operators and may occasionally be affected by last‑minute changes or human error. Our platform is designed to significantly reduce — not eliminate — the likelihood of arriving at a cafeteria only to find an item unavailable.</p>
+      
+      <p style="margin-bottom:8px"><strong>2. No Guarantee of Availability</strong><br>
+      An item shown as "Available" does not constitute a binding guarantee that it will be in stock upon your arrival. Circumstances beyond our control — such as sudden high demand or supply shortages — may affect availability.</p>
+      
+      <p style="margin-bottom:8px"><strong>3. Personal Responsibility</strong><br>
+      For critical meals, we strongly recommend confirming availability directly with the cafeteria before making a trip. The website is a guide, not a replacement for direct communication.</p>
+      
+      <p style="margin-bottom:8px"><strong>4. Token Usage</strong><br>
+      Your access token is personal and non‑transferable. It grants you access to view menus only. Any misuse or sharing of your token may result in revocation of access without notice.</p>
+      
+      <p style="margin-bottom:8px"><strong>5. Acceptance</strong><br>
+      By clicking "I Agree" below, you accept these terms and confirm that you understand the limitations of real‑time menu data. If you do not agree, you will not be granted access to the platform.</p>
+    </div>
+    <div class="modal-actions">
+      <button id="terms-decline" style="background:none;color:var(--text-secondary)">Decline</button>
+      <button class="confirm" id="terms-agree">I Agree</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="index.js"></script>
   
@@ -105,6 +135,16 @@
 <button id="refresh-btn" title="Refresh menus">
   <i class="ti ti-refresh" aria-hidden="true"></i>
 </button>
+
+<footer style="text-align:center;padding:1.5rem 1rem;font-size:11px;color:var(--text-secondary);line-height:1.6;border-top:0.5px solid var(--border-light);margin-top:2rem;">
+  Menu data is updated in real time by cafeteria operators and may
+  occasionally be affected by last-minute changes or human error. 
+  Our platform is designed to significantly reduce, <strong>not eliminate</strong>
+  , the likelihood of arriving at a cafeteria only to find an item 
+  unavailable. For <strong>critical</strong> meals, we recommend confirming availability
+  directly with the cafeteria. We are here to make your dining decisions
+  smarter, <strong>not to guarantee absolute precision.</strong>
+</footer>
 
 </body>
 </html>
