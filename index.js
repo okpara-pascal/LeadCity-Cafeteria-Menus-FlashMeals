@@ -208,11 +208,14 @@ try {
 (function() {
   if (localStorage.getItem('revoked_session') === 'true') {
     document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('gate').style.display = 'flex';
-      document.getElementById('app').style.display = 'none';
-      document.getElementById('gate-normal').style.display = 'none';
-      document.getElementById('gate-denied').style.display = '';
-      document.getElementById('retry-btn').style.display = '';
+      // Only show revoked gate if the user has agreed to T&C (not stuck in T&C flow)
+      if (!localStorage.getItem('current_token') || localStorage.getItem('terms_agreed')) {
+        document.getElementById('gate').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('gate-normal').style.display = 'none';
+        document.getElementById('gate-denied').style.display = '';
+        document.getElementById('retry-btn').style.display = '';
+      }
     });
   }
 })();
