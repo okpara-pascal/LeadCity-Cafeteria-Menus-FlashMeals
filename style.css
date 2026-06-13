@@ -651,7 +651,6 @@ html.logged-in #app {
   padding: 2rem 2.25rem;
 }
 
-#app[style*="display: none"] footer,
-#app[style*="display:none"] footer {
+#app:not([style*="display: flex"]) footer {
   display: none !important;
 }
