@@ -580,9 +580,11 @@ html.logged-in #app {
     .topbar { padding: .75rem 1rem; }
     .topbar-title { font-size: 14px; }
     .hint-tokens { display: none; }
-    .del-btn { font-size: 10px; padding: 4px 6px; }
-    .del-btn i { display: none; }
+    .del-btn { font-size: 14px; padding: 4px 6px; }
+    .del-btn i { display: inline; }
+    .del-btn { color: var(--danger-text); background: none; border: none; }
 }
+.del-btn i { margin-right: 4px; }
 
   .menu-last-updated {
   font-size: 11px;
