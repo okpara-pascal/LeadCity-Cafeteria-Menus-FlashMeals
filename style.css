@@ -650,3 +650,8 @@ html.logged-in #app {
   overflow-y: auto;
   padding: 2rem 2.25rem;
 }
+
+#app[style*="display: none"] footer,
+#app[style*="display:none"] footer {
+  display: none !important;
+}
