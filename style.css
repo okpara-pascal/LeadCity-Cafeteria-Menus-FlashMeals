@@ -575,15 +575,25 @@ html.logged-in #app {
   .modal-actions button.confirm:hover { background: var(--accent-dark); }
  
   /* ── Responsive ── */
-  @media (max-width: 600px) {
+ @media (max-width: 600px) {
     .main { padding: 1rem; }
     .topbar { padding: .75rem 1rem; }
     .topbar-title { font-size: 14px; }
     .hint-tokens { display: none; }
-    .del-btn { font-size: 14px; padding: 4px 6px; }
-    .del-btn i { display: inline; }
-    .del-btn { color: var(--danger-text); background: none; border: none; }
+    .del-btn { 
+        font-size: 0;           /* hide text completely */
+        padding: 6px 8px; 
+        background: none; 
+        border: none; 
+        color: var(--danger-text); 
+    }
+    .del-btn i { 
+        font-size: 16px;        /* show only the icon */
+        display: inline; 
+        margin: 0; 
+    }
 }
+
 .del-btn i { margin-right: 4px; }
 
   .menu-last-updated {
