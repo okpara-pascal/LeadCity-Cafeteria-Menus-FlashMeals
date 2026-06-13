@@ -322,7 +322,6 @@ async function tryEnter() {
   let maxId = 0;
   Object.values(menus).forEach(arr => {
     arr.forEach(item => { if (item.id > maxId) maxId = item.id; });
-    arr.sort((a, b) => a.id - b.id);
   });
   nextId = maxId + 1;
 
@@ -339,7 +338,7 @@ async function tryEnter() {
     logoutBtn.style.display = user.special ? '' : 'none';
   }
 
-  document.getElementById('gate').style.display = 'none';
+    document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('logged-as').textContent = user.name;
   btn.classList.remove('loading');
@@ -354,8 +353,12 @@ async function tryEnter() {
   } else {
     renderCafGrid();
   }
-}
 
+  // Show Terms & Conditions for first‑time students only (not admins, not special tokens)
+  if (user.role === 'student' && !user.special && !localStorage.getItem('terms_agreed')) {
+    document.getElementById('terms-modal').style.display = '';
+  }
+}
 document.getElementById('retry-btn').addEventListener('click', function () {
   if (localStorage.getItem('revoked_session') === 'true') {
     localStorage.removeItem('current_token');
@@ -635,8 +638,11 @@ function renderMenu(cafId) {
     : '';
  
   let rows = items.map(item => {
-    if (isAdmin) {
+        if (isAdmin) {
       return `<tr>
+        <td class="col-drag" style="cursor:grab;text-align:center;padding-top:14px">
+          <i class="ti ti-grip-vertical" style="color:var(--text-secondary);font-size:16px"></i>
+        </td>
         <td class="col-name">
           <input class="edit-name" value="${escHtml(item.name)}"
                  data-cid="${cafId}" data-iid="${item.id}" data-field="name"/>
@@ -700,9 +706,10 @@ function renderMenu(cafId) {
           <i class="ti ti-plus" aria-hidden="true"></i> Add item
         </button>` : ''}
       </div>
-      <table class="menu-table" aria-label="${caf.name} menu">
+            <table class="menu-table" aria-label="${caf.name} menu">
         <thead>
           <tr>
+            ${isAdmin ? '<th class="col-drag"></th>' : ''}
             <th class="col-name">Item</th>
             <th class="col-price">Price</th>
             <th class="col-status">Status</th>
@@ -728,6 +735,35 @@ function renderMenu(cafId) {
         }
       });
     });
+
+      // Enable drag‑and‑drop reordering (admin only)
+  if (isAdmin) {
+    const tbody = area.querySelector('tbody');
+    if (tbody) {
+      new Sortable(tbody, {
+        handle: '.col-drag',   // only the grip icon triggers drag
+        animation: 150,
+        onEnd: function () {
+          // Read the new order from the DOM
+          const newOrder = [];
+          tbody.querySelectorAll('tr').forEach(row => {
+            const nameInput = row.querySelector('.edit-name');
+            if (nameInput) {
+              const itemId = +nameInput.dataset.iid;
+              const item = menus[cafId].find(i => i.id === itemId);
+              if (item) newOrder.push(item);
+            }
+          });
+          // Update the menus array and save
+          menus[cafId] = newOrder;
+          lastUpdated[cafId] = Date.now();
+          saveLastUpdated();
+          saveMenuToServer(cafId, menus[cafId]);
+          renderCafGrid();
+        }
+      });
+    }
+  }
  
     area.querySelectorAll('.del-btn').forEach(el => {
       el.addEventListener('click', function () {
@@ -903,5 +939,27 @@ async function validateSession() {
 }
 
 setInterval(validateSession, 30000);
+
+/* ─── Terms & Conditions handlers ────────────────────────────────────────── */
+document.getElementById('terms-agree').addEventListener('click', function () {
+  localStorage.setItem('terms_agreed', 'true');
+  document.getElementById('terms-modal').style.display = 'none';
+});
+
+document.getElementById('terms-decline').addEventListener('click', function () {
+  // Sign them out
+  localStorage.removeItem('current_token');
+  localStorage.removeItem('selected_caf');
+  document.getElementById('terms-modal').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('gate-normal').style.display = '';
+  document.getElementById('gate-denied').style.display = 'none';
+  tokenInput.value = '';
+  selectedCaf = null;
+  isAdmin = false;
+  currentUser = null;
+  alert('You must accept the Terms & Conditions to use this platform.');
+});
 
 })();
