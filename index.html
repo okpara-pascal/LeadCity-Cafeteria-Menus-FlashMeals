@@ -63,6 +63,21 @@
     <div class="caf-grid" id="caf-grid"></div>
     <div id="menu-area"></div>
   </main>
+
+  <!-- Floating refresh button -->
+  <button id="refresh-btn" title="Refresh menus">
+    <i class="ti ti-refresh" aria-hidden="true"></i>
+  </button>
+
+  <footer style="text-align:center;padding:1.5rem 1rem;font-size:11px;color:var(--text-secondary);line-height:1.6;border-top:0.5px solid var(--border-light);margin-top:2rem;">
+    Menu data is updated in real time by cafeteria operators and may
+    occasionally be affected by last-minute changes or human error. 
+    Our platform is designed to significantly reduce, <strong>not eliminate</strong>
+    , the likelihood of arriving at a cafeteria only to find an item 
+    unavailable. For <strong>critical</strong> meals, we recommend confirming availability
+    directly with the cafeteria. We are here to make your dining decisions
+    smarter, <strong>not to guarantee absolute precision.</strong>
+  </footer>
 </div>
  
 <!-- ═══════════════ ADD ITEM MODAL ═══════════════ -->
@@ -114,37 +129,22 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="index.js"></script>
   
-   <script>
-    (function(){
-      if (localStorage.getItem('revoked_session') === 'true') return;
-      const token = localStorage.getItem('current_token');
-      if (!token) return;
+<script>
+  (function(){
+    if (localStorage.getItem('revoked_session') === 'true') return;
+    const token = localStorage.getItem('current_token');
+    if (!token) return;
 
-      const cachedMenus = localStorage.getItem('campus_menus');
-      if (!cachedMenus) return;
+    const cachedMenus = localStorage.getItem('campus_menus');
+    if (!cachedMenus) return;
 
-      document.getElementById('gate').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-    })();
-  </script>
-  
-  <!-- Floating refresh button -->
-<button id="refresh-btn" title="Refresh menus">
-  <i class="ti ti-refresh" aria-hidden="true"></i>
-</button>
-
-<footer style="text-align:center;padding:1.5rem 1rem;font-size:11px;color:var(--text-secondary);line-height:1.6;border-top:0.5px solid var(--border-light);margin-top:2rem;">
-  Menu data is updated in real time by cafeteria operators and may
-  occasionally be affected by last-minute changes or human error. 
-  Our platform is designed to significantly reduce, <strong>not eliminate</strong>
-  , the likelihood of arriving at a cafeteria only to find an item 
-  unavailable. For <strong>critical</strong> meals, we recommend confirming availability
-  directly with the cafeteria. We are here to make your dining decisions
-  smarter, <strong>not to guarantee absolute precision.</strong>
-</footer>
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  })();
+</script>
 
 </body>
 </html>
