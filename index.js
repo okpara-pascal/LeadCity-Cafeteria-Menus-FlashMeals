@@ -208,8 +208,8 @@ try {
 (function() {
   if (localStorage.getItem('revoked_session') === 'true') {
     document.addEventListener('DOMContentLoaded', function() {
-      // Only show revoked gate if the user has agreed to T&C (not stuck in T&C flow)
-      if (!localStorage.getItem('current_token') || localStorage.getItem('terms_agreed')) {
+      // Only show revoked gate if the user already agreed to T&C
+      if (localStorage.getItem('terms_agreed') === 'true') {
         document.getElementById('gate').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('gate-normal').style.display = 'none';
