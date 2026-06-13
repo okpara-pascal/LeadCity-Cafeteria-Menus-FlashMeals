@@ -947,13 +947,25 @@ setInterval(validateSession, 30000);
 /* ─── Terms & Conditions handlers ────────────────────────────────────────── */
 document.getElementById('terms-agree').addEventListener('click', async function () {
   localStorage.setItem('terms_agreed', 'true');
-  document.getElementById('terms-modal').style.display = 'none';
   
-  // Now finalize the token in Supabase
+  // Insert token into Supabase NOW (with retry)
   const token = localStorage.getItem('current_token');
   if (token && currentUser && !currentUser.special) {
-    await finalizeTokenInsert(token);
+    try {
+      await supabase.from('tokens').insert({ token: token, revoked: false });
+      localStorage.setItem('token_used_' + token, 'true');
+    } catch (e) {
+      console.warn('Failed to insert token, retrying...');
+      try {
+        await supabase.from('tokens').insert({ token: token, revoked: false });
+        localStorage.setItem('token_used_' + token, 'true');
+      } catch (e2) {
+        console.warn('Retry failed');
+      }
+    }
   }
+  
+  document.getElementById('terms-modal').style.display = 'none';
 });
 
 document.getElementById('terms-decline').addEventListener('click', function () {
