@@ -957,6 +957,19 @@ document.getElementById('terms-agree').addEventListener('click', async function 
       }
     }
   }
+
+  // Load timestamps from Supabase so they appear immediately
+  try {
+    const { data: times } = await supabase.from('last_updated').select('*');
+    if (times) {
+      times.forEach(row => {
+        lastUpdated[row.caf_id] = new Date(row.updated_at).getTime();
+      });
+      localStorage.setItem('campus_lastUpdated', JSON.stringify(lastUpdated));
+    }
+  } catch (e) {
+    console.warn('Could not load timestamps after T&C');
+  }
   
   document.getElementById('terms-modal').style.display = 'none';
   // Show the app now that they've agreed
